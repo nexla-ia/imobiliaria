@@ -54,7 +54,7 @@ export function DefinirSenha() {
     ).catch(() => {});
 
   return (
-    <KeyboardAvoidingView style={estilos.tela} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={estilos.tela} behavior="padding">
       <Ondas variante="login" />
       <ScrollView
         contentContainerStyle={[estilos.conteudo, { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 24 }]}

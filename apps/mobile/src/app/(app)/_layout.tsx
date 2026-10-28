@@ -15,7 +15,7 @@ import { supabase } from '@/lib/supabase';
 import { cores } from '@/tema';
 
 export default function AppLayout() {
-  const { comprador, bloqueado, carregando, sair } = useSessao();
+  const { comprador, empresa, bloqueado, carregando, erroCarga, sair, recarregar } = useSessao();
   const queryClient = useQueryClient();
   // com senha provisória ainda não trocada, o servidor não libera nada (nem push, nem tempo real)
   const liberado = comprador?.status_acesso === 'ativo' && !comprador.deve_trocar_senha;
@@ -57,6 +57,19 @@ export default function AppLayout() {
   }, [compradorId, queryClient]);
 
   if (carregando) return <Carregando />;
+
+  // sem internet ao abrir: não é "conta excluída", é só tentar de novo
+  if (erroCarga && (!comprador || (comprador.status_acesso === 'ativo' && !empresa))) {
+    return (
+      <View style={{ flex: 1, backgroundColor: cores.azulNoite, justifyContent: 'center', padding: 24, gap: 12 }}>
+        <Ondas variante="login" />
+        <Texto peso="extraItalico" tamanho={28} cor="#FFFFFF">SEM CONEXÃO</Texto>
+        <Texto cor={cores.textoClaro}>Não conseguimos carregar seus dados. Confira a internet do celular e tente de novo.</Texto>
+        <Botao titulo="Tentar de novo" variante="ciano" aoTocar={recarregar} style={{ marginTop: 12 }} />
+        <Botao titulo="Sair" variante="contorno" aoTocar={sair} />
+      </View>
+    );
+  }
 
   if (comprador?.status_acesso === 'ativo' && comprador.deve_trocar_senha) return <DefinirSenha />;
 

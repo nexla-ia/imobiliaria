@@ -6,6 +6,7 @@ import { Texto } from '@/components/Texto';
 import { Topo } from '@/components/Topo';
 import { Carregando, ErroCarga, PillStatus, Vazio } from '@/components/ui';
 import { useImovelAtual } from '@/lib/imovel-atual';
+import { usePuxarParaAtualizar } from '@/lib/puxar';
 import { useComprador } from '@/lib/sessao';
 import { cores } from '@/tema';
 
@@ -14,7 +15,8 @@ const rotulos: Record<Filtro, string> = { todas: 'Todas', em_aberto: 'Em aberto'
 
 export default function Parcelas() {
   const { empresa } = useComprador();
-  const { contrato, parcelas, avulsas, carregando, erro, recarregar, cobrancas } = useImovelAtual();
+  const { contrato, parcelas, avulsas, carregando, erro, recarregar } = useImovelAtual();
+  const puxar = usePuxarParaAtualizar(recarregar);
   const [filtro, setFiltro] = useState<Filtro>('todas');
 
   // avulsas só aparecem se a imobiliária liberou (a RLS já filtra; aqui é só a seção)
@@ -65,7 +67,7 @@ export default function Parcelas() {
           data={lista}
           keyExtractor={(p) => p.id}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
-          refreshControl={<RefreshControl refreshing={cobrancas.isRefetching} onRefresh={() => { void recarregar(); }} tintColor={cores.cianoEscuro} />}
+          refreshControl={<RefreshControl refreshing={puxar.atualizando} onRefresh={puxar.aoPuxar} tintColor={cores.cianoEscuro} />}
           ListEmptyComponent={
             <Vazio
               icone={filtro === 'vencida' ? 'happy-outline' : 'file-tray-outline'}
@@ -120,7 +122,7 @@ function LinhaParcela({ cobranca: c, total, primeira, ultima }: { cobranca: Cobr
         <Texto tamanho={15} cor={cores.textoSuave}>{sub}</Texto>
       </View>
       <View style={{ alignItems: 'flex-end', gap: 4 }}>
-        <Texto peso="negrito">{formatarMoeda(c.status_app === 'paga' && c.valor_original ? c.valor_original : c.valor)}</Texto>
+        <Texto peso="negrito">{formatarMoeda(c.valor)}</Texto>
         <PillStatus status={c.status_app} />
       </View>
     </Pressable>

@@ -7,6 +7,7 @@ import { Topo } from '@/components/Topo';
 import { Carregando, ErroCarga, Icone, Vazio, type NomeIcone } from '@/components/ui';
 import { useNotificacoes } from '@/lib/dados';
 import { abrirDestino } from '@/lib/navegacao';
+import { usePuxarParaAtualizar } from '@/lib/puxar';
 import { supabase } from '@/lib/supabase';
 import { cores } from '@/tema';
 
@@ -26,6 +27,7 @@ function quando(iso: string): string {
 
 export default function Notificacoes() {
   const q = useNotificacoes();
+  const puxar = usePuxarParaAtualizar(() => q.refetch());
   const queryClient = useQueryClient();
   const naoLidas = (q.data ?? []).filter((n) => !n.lida_em);
 
@@ -61,7 +63,7 @@ export default function Notificacoes() {
           data={q.data}
           keyExtractor={(n) => n.id}
           contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
-          refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => { void q.refetch(); }} tintColor={cores.cianoEscuro} />}
+          refreshControl={<RefreshControl refreshing={puxar.atualizando} onRefresh={puxar.aoPuxar} tintColor={cores.cianoEscuro} />}
           ListEmptyComponent={
             <Vazio icone="notifications-off-outline" titulo="Nenhuma notificação" texto="Avisos de vencimento, pagamentos e comunicados da imobiliária aparecem aqui." />
           }

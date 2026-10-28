@@ -6,14 +6,16 @@ import { Texto } from '@/components/Texto';
 import { Topo } from '@/components/Topo';
 import { Cartao, Carregando, ErroCarga, Icone, SecaoTitulo, Vazio } from '@/components/ui';
 import { abrirDocumentoUrl, useDocumentos } from '@/lib/dados';
+import { usePuxarParaAtualizar } from '@/lib/puxar';
 import { useImovelAtual } from '@/lib/imovel-atual';
 import { cores } from '@/tema';
 
-const abrir = (url: string) => WebBrowser.openBrowserAsync(url, { toolbarColor: cores.azulNoite, controlsColor: cores.ciano });
+const abrir = (url: string) => WebBrowser.openBrowserAsync(url, { toolbarColor: cores.azulNoite, controlsColor: cores.ciano }).catch(() => {});
 const tipos: Record<Documento['tipo'], string> = { contrato: 'Contrato', aditivo: 'Aditivo', escritura: 'Escritura', outro: 'Documento' };
 
 export default function Documentos() {
   const docs = useDocumentos();
+  const puxar = usePuxarParaAtualizar(() => docs.refetch());
   const { contrato, parcelas } = useImovelAtual();
   const [abrindo, setAbrindo] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -41,7 +43,7 @@ export default function Documentos() {
     <ScrollView
       style={{ flex: 1, backgroundColor: cores.fundo }}
       contentContainerStyle={{ paddingBottom: 32 }}
-      refreshControl={<RefreshControl refreshing={docs.isRefetching} onRefresh={() => { void docs.refetch(); }} tintColor={cores.ciano} />}
+      refreshControl={<RefreshControl refreshing={puxar.atualizando} onRefresh={puxar.aoPuxar} tintColor={cores.ciano} />}
     >
       <Topo titulo="Documentos" subtitulo={contrato?.imoveis.identificacao} />
       <View style={{ paddingHorizontal: 16 }}>
@@ -79,7 +81,7 @@ export default function Documentos() {
                 key={p.id}
                 ultima={n === comprovantes.length - 1}
                 titulo={`Parcela ${p.numero_parcela ?? '–'}${total ? ` de ${total}` : ''}`}
-                sub={`Pago em ${p.data_pagamento ? formatarData(p.data_pagamento) : '—'} · ${formatarMoeda(p.valor_original ?? p.valor)}`}
+                sub={`Pago em ${p.data_pagamento ? formatarData(p.data_pagamento) : '—'} · ${formatarMoeda(p.valor)}`}
                 comprovante
                 aoTocar={() => abrir(p.comprovante_url!)}
               />

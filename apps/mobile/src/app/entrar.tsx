@@ -26,12 +26,14 @@ export default function Entrar() {
     setErro(null);
     setEnviando(true);
     const falha = await entrar(cpf, senha);
-    setEnviando(false);
-    if (falha) setErro(falha);
+    if (falha) {
+      setEnviando(false);
+      setErro(falha);
+    }
   }
 
   return (
-    <KeyboardAvoidingView style={estilos.tela} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={estilos.tela} behavior="padding">
       <Ondas variante="login" />
       <ScrollView
         contentContainerStyle={[estilos.conteudo, { paddingTop: insets.top + 28, paddingBottom: insets.bottom + 24 }]}

@@ -7,6 +7,6 @@ export function abrirDestino(payload: Notificacao['payload'] | undefined) {
   if ((payload.tela === 'pagar' || payload.tela === 'parcela') && payload.cobranca_id) {
     router.push({ pathname: '/cobranca/[id]', params: { id: payload.cobranca_id } });
   } else if (payload.tela === 'notificacoes') {
-    router.push('/notificacoes');
+    router.navigate('/notificacoes');
   }
 }

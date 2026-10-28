@@ -1,5 +1,5 @@
 import type { ErroApi } from '@planejar/shared';
-import { FunctionsHttpError } from '@supabase/supabase-js';
+import { FunctionsFetchError, FunctionsHttpError } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 
 export class ErroDaApi extends Error {
@@ -17,8 +17,10 @@ export async function chamar<T>(funcao: string, corpo: object = {}): Promise<T> 
     if (error instanceof FunctionsHttpError) {
       const detalhe = (await error.context.json().catch(() => null)) as ErroApi | null;
       if (detalhe?.mensagem) throw new ErroDaApi(detalhe.erro, detalhe.mensagem);
+      throw new ErroDaApi('erro_interno', 'O servidor não respondeu como esperado. Tente de novo em instantes.');
     }
-    throw new ErroDaApi('sem_conexao', 'Sem conexão com a internet. Confira e tente de novo.');
+    if (error instanceof FunctionsFetchError) throw new ErroDaApi('sem_conexao', 'Sem conexão com a internet. Confira e tente de novo.');
+    throw new ErroDaApi('erro_interno', 'Algo deu errado. Tente de novo em instantes.');
   }
   return data as T;
 }

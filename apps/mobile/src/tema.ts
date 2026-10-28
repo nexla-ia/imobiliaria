@@ -8,6 +8,10 @@ export const cores = {
   linhaSuave: '#EDF1F7',
   textoClaro: '#AFC0EC',
   okBg: '#E3F5EC',
+  // texto sobre os fundos claros das etiquetas, com contraste AA (>= 4,5:1)
+  okTexto: '#0A6B3D',
+  abertoTexto: '#00658F',
+  alertaTexto: '#9A4508',
   alertaBg: '#FDF0E1',
   erroBg: '#FCE8EB',
   abertoBg: '#E4F3FB',

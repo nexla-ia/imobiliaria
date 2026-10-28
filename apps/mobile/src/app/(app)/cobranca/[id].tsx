@@ -1,15 +1,15 @@
 import { formatarData, formatarMoeda, podePagar, type BoletoRes, type PixRes } from '@planejar/shared';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Texto } from '@/components/Texto';
-import { Botao, Carregando, Icone, PillStatus, Vazio } from '@/components/ui';
+import { Botao, Carregando, ErroCarga, Icone, PillStatus, Vazio } from '@/components/ui';
 import { chamar, mensagemDeErro } from '@/lib/api';
 import { useImovelAtual } from '@/lib/imovel-atual';
 import { cores, fontes } from '@/tema';
@@ -17,7 +17,7 @@ import { cores, fontes } from '@/tema';
 type Forma = 'boleto' | 'pix';
 
 const abrirNavegador = (url: string) =>
-  WebBrowser.openBrowserAsync(url, { toolbarColor: cores.azulNoite, controlsColor: cores.ciano, dismissButtonStyle: 'close' });
+  WebBrowser.openBrowserAsync(url, { toolbarColor: cores.azulNoite, controlsColor: cores.ciano, dismissButtonStyle: 'close' }).catch(() => {});
 
 export default function CobrancaDetalhe() {
   const { id, forma: formaInicial } = useLocalSearchParams<{ id: string; forma?: Forma }>();
@@ -27,6 +27,7 @@ export default function CobrancaDetalhe() {
 
   const c = cobrancas.data?.find((x) => x.id === id);
   if (cobrancas.isLoading) return <Carregando />;
+  if (cobrancas.error) return <ErroCarga aoTentar={() => { void cobrancas.refetch(); }} />;
   if (!c) return <Vazio titulo="Parcela não encontrada" texto="Ela pode ter sido cancelada pela imobiliária." />;
 
   const contrato = lista.find((k) => k.id === c.contrato_id);
@@ -85,7 +86,7 @@ export default function CobrancaDetalhe() {
         </>
       ) : (
         <Detalhes
-          valorPago={c.valor_original ?? c.valor}
+          valorPago={c.valor}
           vencimento={c.vencimento}
           pagoEm={c.data_pagamento}
           forma={c.billing_type}
@@ -227,6 +228,11 @@ function Buscando({ texto }: { texto: string }) {
 }
 
 function FalhaBusca({ mensagem, aoTentar }: { mensagem: string; aoTentar: () => void }) {
+  const queryClient = useQueryClient();
+  // o Asaas pode ter dito que a parcela já foi paga ou removida: atualiza a lista
+  useEffect(() => {
+    void queryClient.invalidateQueries({ queryKey: ['cobrancas'] });
+  }, [queryClient]);
   return (
     <View style={{ marginTop: 20, gap: 12 }}>
       <Texto cor={cores.erro}>{mensagem}</Texto>

@@ -6,7 +6,7 @@ import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ondas } from '@/components/Ondas';
 import { Texto } from '@/components/Texto';
-import { Botao, Cartao, Carregando, Icone, SecaoTitulo, Vazio } from '@/components/ui';
+import { Botao, Cartao, Carregando, ErroCarga, Icone, SecaoTitulo, Vazio } from '@/components/ui';
 import { useFotosImovel } from '@/lib/dados';
 import { useImovelAtual } from '@/lib/imovel-atual';
 import { cores } from '@/tema';
@@ -25,11 +25,18 @@ function linkMapa(lat: number, lng: number, nome: string, rota: boolean): string
 export default function MeuImovel() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const { contrato, carregando } = useImovelAtual();
+  const { contrato, carregando, erro, recarregar } = useImovelAtual();
   const fotos = useFotosImovel(contrato?.imovel_id);
   const [foto, setFoto] = useState(0);
+  const [contratoDaFoto, setContratoDaFoto] = useState<string | undefined>(undefined);
+  // trocou de imóvel no seletor: a galeria recomeça da primeira foto
+  if (contrato && contrato.id !== contratoDaFoto) {
+    setContratoDaFoto(contrato.id);
+    setFoto(0);
+  }
 
   if (carregando) return <Carregando />;
+  if (erro) return <ErroCarga aoTentar={() => { void recarregar(); }} />;
   if (!contrato) return <Vazio icone="home-outline" titulo="Nenhum imóvel vinculado ainda" />;
   const i = contrato.imoveis;
   const temMapa = i.lat != null && i.lng != null;
@@ -40,6 +47,7 @@ export default function MeuImovel() {
       <View style={[estilos.galeria, { height: 260 + insets.top }]}>
         {listaFotos.length ? (
           <ScrollView
+            key={contrato.id}
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}

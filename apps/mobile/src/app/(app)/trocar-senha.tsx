@@ -1,17 +1,17 @@
-import { emailDoComprador, SENHA_MINIMA } from '@planejar/shared';
+import { SENHA_MINIMA } from '@planejar/shared';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Texto } from '@/components/Texto';
 import { Botao } from '@/components/ui';
-import { useComprador } from '@/lib/sessao';
-import { EMPRESA_SLUG, supabase } from '@/lib/supabase';
+import { useSessao } from '@/lib/sessao';
+import { supabase } from '@/lib/supabase';
 import { cores, fontes } from '@/tema';
 
 export default function TrocarSenha() {
   const insets = useSafeAreaInsets();
-  const { comprador } = useComprador();
+  const { session } = useSessao();
   const [atual, setAtual] = useState('');
   const [nova, setNova] = useState('');
   const [repetir, setRepetir] = useState('');
@@ -24,10 +24,12 @@ export default function TrocarSenha() {
     setErro(null);
     setSalvando(true);
     // confere a senha atual antes de trocar
-    const { error: erroAtual } = await supabase.auth.signInWithPassword({ email: emailDoComprador(comprador.cpf, EMPRESA_SLUG), password: atual });
+    const { error: erroAtual } = await supabase.auth.signInWithPassword({ email: session?.user.email ?? '', password: atual });
     if (erroAtual) {
       setSalvando(false);
-      return setErro('A senha atual está incorreta.');
+      return setErro(/invalid login credentials/i.test(erroAtual.message)
+        ? 'A senha atual está incorreta.'
+        : 'Não foi possível conferir a senha agora. Confira a internet e tente de novo.');
     }
     const { error } = await supabase.auth.updateUser({ password: nova });
     setSalvando(false);
@@ -37,7 +39,7 @@ export default function TrocarSenha() {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: '#FFFFFF' }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: '#FFFFFF' }} behavior="padding">
       <ScrollView contentContainerStyle={{ padding: 20, paddingTop: Platform.OS === 'ios' ? 24 : insets.top + 16, gap: 14 }} keyboardShouldPersistTaps="handled">
         <Texto peso="negrito" tamanho={24} accessibilityRole="header">Trocar senha</Texto>
         <Texto cor={cores.textoSuave}>Use pelo menos {SENHA_MINIMA} caracteres. Esqueceu a atual? Saia do app e toque em "Esqueci a senha".</Texto>

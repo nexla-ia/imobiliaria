@@ -8,6 +8,7 @@ import { Texto } from '@/components/Texto';
 import { Topo } from '@/components/Topo';
 import { BarraProgresso, Botao, Cartao, Carregando, ErroCarga, Icone, SecaoTitulo, Vazio, type NomeIcone } from '@/components/ui';
 import { useNotificacoes } from '@/lib/dados';
+import { usePuxarParaAtualizar } from '@/lib/puxar';
 import { linkAtendimento, proximaParcela, useImovelAtual } from '@/lib/imovel-atual';
 import { useComprador } from '@/lib/sessao';
 import { cores, raio } from '@/tema';
@@ -28,6 +29,7 @@ export default function Inicio() {
   const { comprador, empresa } = useComprador();
   const { lista, contrato, parcelas, escolher, carregando, erro, recarregar, contratos } = useImovelAtual();
   const notificacoes = useNotificacoes();
+  const puxar = usePuxarParaAtualizar(() => Promise.all([recarregar(), notificacoes.refetch()]));
   const naoLidas = (notificacoes.data ?? []).filter((n) => !n.lida_em).length;
   const ultimoComunicado = (notificacoes.data ?? []).find((n) => n.tipo === 'comunicado');
   const primeiroNome = comprador.nome.split(' ')[0];
@@ -43,7 +45,7 @@ export default function Inicio() {
     <ScrollView
       style={{ flex: 1, backgroundColor: cores.fundo }}
       contentContainerStyle={{ paddingBottom: 32 }}
-      refreshControl={<RefreshControl refreshing={contratos.isRefetching} onRefresh={() => { recarregar(); notificacoes.refetch(); }} tintColor={cores.ciano} />}
+      refreshControl={<RefreshControl refreshing={puxar.atualizando} onRefresh={puxar.aoPuxar} tintColor={cores.ciano} />}
     >
       <Topo
         style={{ paddingBottom: lista.length > 1 ? 44 : 48 }}
@@ -101,7 +103,7 @@ export default function Inicio() {
               icone="home-outline"
               titulo="Nenhum imóvel vinculado ainda"
               texto="Assim que a imobiliária vincular seu contrato, suas parcelas aparecem aqui."
-              acao={whats ? <Botao titulo="Falar com a imobiliária" icone="logo-whatsapp" variante="whatsapp" aoTocar={() => Linking.openURL(whats)} /> : null}
+              acao={whats ? <Botao titulo="Falar com a imobiliária" icone="logo-whatsapp" variante="whatsapp" aoTocar={() => Linking.openURL(whats).catch(() => {})} /> : null}
             />
           </Cartao>
         ) : (

@@ -96,6 +96,8 @@ export function ouvirToquesEmNotificacoes(aoTocar: (payload: Notificacao['payloa
   }
   const sub = N.addNotificationResponseReceivedListener((r) => {
     aoTocar(r.notification.request.content.data as Notificacao['payload']);
+    // senão, ao entrar de novo (ou com outra conta), abriria esta notificação outra vez
+    N.clearLastNotificationResponse();
   });
   return () => sub.remove();
 }

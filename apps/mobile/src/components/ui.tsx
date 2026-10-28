@@ -38,7 +38,7 @@ const estiloVariante: Record<VarianteBotao, { fundo: string; texto: string; bord
   navy: { fundo: cores.azulNoite, texto: '#FFFFFF' },
   claro: { fundo: '#E8EEF8', texto: cores.azulNoite },
   perigo: { fundo: cores.erro, texto: '#FFFFFF' },
-  whatsapp: { fundo: '#1F9E55', texto: '#FFFFFF' },
+  whatsapp: { fundo: '#0E7A40', texto: '#FFFFFF' },
 };
 
 export function Botao({ titulo, aoTocar, variante = 'navy', icone, carregando, desabilitado, style }: {
@@ -87,10 +87,10 @@ export function LinkTexto({ titulo, aoTocar, cor = cores.cianoEscuro }: { titulo
 }
 
 const pills: Record<Exclude<StatusApp, 'oculta'>, { fundo: string; texto: string; rotulo: string }> = {
-  paga: { fundo: cores.okBg, texto: cores.sucesso, rotulo: 'Paga' },
-  em_aberto: { fundo: cores.abertoBg, texto: cores.cianoEscuro, rotulo: 'Em aberto' },
+  paga: { fundo: cores.okBg, texto: cores.okTexto, rotulo: 'Paga' },
+  em_aberto: { fundo: cores.abertoBg, texto: cores.abertoTexto, rotulo: 'Em aberto' },
   vencida: { fundo: cores.erroBg, texto: cores.erro, rotulo: 'Vencida' },
-  estornada: { fundo: cores.alertaBg, texto: cores.alerta, rotulo: 'Estornada' },
+  estornada: { fundo: cores.alertaBg, texto: cores.alertaTexto, rotulo: 'Estornada' },
 };
 
 export function PillStatus({ status }: { status: StatusApp }) {
