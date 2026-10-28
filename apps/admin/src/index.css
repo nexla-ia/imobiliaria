@@ -1,0 +1,40 @@
+@import 'tailwindcss';
+
+/* Marca Planejar Assessoria — mesmos valores de packages/shared/src/marca.ts */
+@theme {
+  --font-sans: 'Saira', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Mono', Menlo, monospace;
+
+  --color-noite: #000d38;
+  --color-profundo: #00020e;
+  --color-marinho: #0a1f5c;
+  --color-ciano: #0ac1fa;
+  --color-ciano-escuro: #0078a8;
+  --color-fundo: #f2f5fa;
+  --color-linha: #dfe5f0;
+  --color-texto: #0b1433;
+  --color-suave: #4a5578;
+  --color-ok: #0e8a4f;
+  --color-ok-bg: #e3f5ec;
+  --color-alerta: #b45309;
+  --color-alerta-bg: #fdf0e1;
+  --color-erro: #c2283a;
+  --color-erro-bg: #fce8eb;
+  --color-info-bg: #e4f3fb;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+  body {
+    @apply bg-fundo text-texto antialiased;
+    font-size: 15px;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ciano-escuro;
+  }
+  table {
+    font-variant-numeric: tabular-nums;
+  }
+}
