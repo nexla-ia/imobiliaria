@@ -1,0 +1,1162 @@
+<title>App do Comprador Planejar</title>
+<meta name="theme-color" content="#000D38">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #000D38;
+    --deep: #00020E;
+    --marinho: #0A1F5C;
+    --ciano: #0AC1FA;
+    --ciano-escuro: #0078A8;
+    --bg: #F2F5FA;
+    --card: #FFFFFF;
+    --linha: #DFE5F0;
+    --texto: #0B1433;
+    --suave: #4A5578;
+    --ok: #0E8A4F;
+    --ok-bg: #E3F5EC;
+    --alerta: #B45309;
+    --alerta-bg: #FDF0E1;
+    --erro: #C2283A;
+    --erro-bg: #FCE8EB;
+    --aberto-bg: #E4F3FB;
+    --whats: #25D366;
+    --raio: 18px;
+    --sombra: 0 1px 2px rgba(0, 13, 56, .06), 0 8px 24px rgba(0, 13, 56, .08);
+    /* visual único da marca (azul-noite), igual em tema claro e escuro */
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: 'Saira', system-ui, sans-serif;
+    font-size: 16px;
+    color: var(--texto);
+    background-color: var(--deep);
+    background-image: radial-gradient(1200px 700px at 85% -10%, #0A1F5C 0%, var(--navy) 45%, var(--deep) 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  input { font: inherit; }
+  :focus-visible { outline: 3px solid var(--ciano); outline-offset: 2px; border-radius: 8px; }
+  .ico { width: 24px; height: 24px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  .ico.fill { fill: currentColor; stroke: none; }
+
+  /* ---------- palco do protótipo ---------- */
+  .stage { display: flex; gap: 56px; justify-content: center; align-items: flex-start; padding: 40px 24px 56px; }
+  .device {
+    position: sticky; top: 24px; flex: none;
+    width: 414px; height: 868px; padding: 12px; border-radius: 58px;
+    background: linear-gradient(145deg, #1b2235, #05070d);
+    box-shadow: 0 0 0 1px rgba(255,255,255,.08) inset, 0 40px 90px rgba(0,0,0,.55), 0 0 60px rgba(10,193,250,.12);
+  }
+  .app { position: relative; width: 100%; height: 100%; border-radius: 46px; overflow: hidden; background: var(--bg); }
+
+  .proto { width: 360px; color: #DCE6FF; padding-top: 8px; }
+  .proto h1 { font-style: italic; font-weight: 800; font-size: 34px; line-height: 1; margin: 0 0 4px; color: #fff; letter-spacing: -.5px; }
+  .proto h1 span { color: var(--ciano); display: block; }
+  .proto p { margin: 12px 0; line-height: 1.5; color: #B9C6EA; }
+  .proto h2 { font-size: 14px; letter-spacing: .12em; text-transform: uppercase; color: var(--ciano); margin: 28px 0 10px; font-weight: 700; }
+  .proto-telas { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .proto-telas button {
+    text-align: left; padding: 10px 12px; border-radius: 12px; font-size: 15px; font-weight: 500;
+    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); color: #E8EEFF;
+  }
+  .proto-telas button:hover { background: rgba(10,193,250,.12); border-color: rgba(10,193,250,.4); }
+  .proto-telas button[aria-current="true"] { background: rgba(10,193,250,.18); border-color: var(--ciano); color: #fff; }
+  .chave { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); margin-bottom: 8px; cursor: pointer; }
+  .chave small { display: block; color: #93A3CF; font-size: 14px; }
+  .chave input { appearance: none; width: 46px; height: 28px; border-radius: 99px; background: #2A3560; position: relative; cursor: pointer; flex: none; transition: background .2s; }
+  .chave input::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform .2s; }
+  .chave input:checked { background: var(--ciano); }
+  .chave input:checked::after { transform: translateX(18px); }
+  .proto ol { margin: 0; padding-left: 20px; line-height: 1.55; color: #C9D4F2; }
+  .proto ol li { margin-bottom: 6px; }
+  .proto ol b { color: #fff; font-weight: 600; }
+  .proto .rodape { margin-top: 28px; font-size: 14px; color: #7484B4; }
+  .proto-fechar, .proto-abrir { display: none; }
+
+  a.btn, a.atalho { text-decoration: none; }
+  .atalho { color: var(--texto); }
+  @media (max-width: 860px) {
+    html, body { height: 100%; }
+    body { min-height: 0; }
+    .stage { padding: 0; display: block; height: 100%; }
+    .device { position: relative; top: 0; width: 100%; height: 100%; padding: 0; border-radius: 0; box-shadow: none; background: none; }
+    .app { border-radius: 0; }
+    .proto {
+      position: fixed; inset: 0; z-index: 50; width: auto; overflow-y: auto;
+      padding: calc(24px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(40px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+      background: rgba(0, 4, 20, .97); transform: translateY(100%); transition: transform .3s ease; visibility: hidden;
+    }
+    .proto.aberto { transform: none; visibility: visible; }
+    .proto-fechar { display: inline-flex; position: absolute; top: 18px; right: 16px; color: #fff; padding: 8px; }
+    .proto-abrir {
+      display: inline-flex; align-items: center; gap: 6px; position: fixed; z-index: 40;
+      right: calc(12px + env(safe-area-inset-right, 0px)); bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+      padding: 8px 14px; border-radius: 99px; background: rgba(0,13,56,.88); color: #fff; font-size: 14px; font-weight: 600;
+      border: 1px solid rgba(10,193,250,.6); box-shadow: 0 6px 18px rgba(0,0,0,.3);
+    }
+  }
+
+  /* ---------- estrutura do app ---------- */
+  .statusbar {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 30; height: 48px; padding: 14px 30px 0;
+    display: flex; justify-content: space-between; align-items: center; color: #fff; font-weight: 600; font-size: 15px; pointer-events: none;
+  }
+  .statusbar .sinais { display: flex; gap: 6px; align-items: center; }
+  @media (max-width: 860px) { .statusbar { display: none; } }
+
+  /* a faixa de 48px no topo fica sempre azul, como a área segura do celular */
+  .tela { position: absolute; inset: 0; display: none; flex-direction: column; padding-top: 48px; background: var(--navy); }
+  @media (max-width: 860px) { .tela { padding-top: env(safe-area-inset-top); } }
+  .tela.ativa { display: flex; animation: entrar .22s ease; }
+  @keyframes entrar { from { opacity: .4; } to { opacity: 1; } }
+  .rolagem { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding-bottom: 104px; scrollbar-width: none; background: var(--bg); }
+  .rolagem::-webkit-scrollbar { display: none; }
+  .tela.sem-abas .rolagem { padding-bottom: 32px; }
+
+  .topo {
+    position: relative; overflow: hidden; color: #fff; padding: 14px 20px 24px;
+    background: radial-gradient(500px 300px at 100% 0%, #0A1F5C, transparent 70%), linear-gradient(180deg, var(--navy), #00082A);
+  }
+  .topo > * { position: relative; z-index: 1; }
+  .ondas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+  .topo-linha { display: flex; align-items: center; gap: 12px; }
+  .topo h2 { margin: 0; font-size: 24px; font-weight: 700; line-height: 1.15; }
+  .topo .sub { margin: 2px 0 0; color: #AFC0EC; font-size: 16px; }
+  .icone-btn { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); color: #fff; position: relative; flex: none; }
+  .badge { position: absolute; top: 6px; right: 6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 99px; background: var(--ciano); color: var(--navy); font-size: 12px; font-weight: 800; display: grid; place-items: center; border: 2px solid var(--navy); }
+  .voltar { margin-left: -8px; }
+
+  .abas {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 20; height: 88px; padding: 8px 6px 26px;
+    display: grid; grid-template-columns: repeat(5, 1fr); background: rgba(255,255,255,.96); backdrop-filter: blur(12px);
+    border-top: 1px solid var(--linha);
+  }
+  @media (max-width: 860px) { .abas { padding-bottom: max(10px, env(safe-area-inset-bottom)); height: auto; } }
+  .abas button { display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B7699; font-size: 14px; font-weight: 500; padding-top: 4px; border-radius: 12px; }
+  .abas button[aria-current="page"] { color: var(--navy); font-weight: 700; }
+  .abas button[aria-current="page"] .ico { color: var(--ciano-escuro); }
+  .abas[hidden] { display: none; }
+
+  /* ---------- componentes ---------- */
+  .pad { padding: 0 16px; }
+  .card { background: var(--card); border-radius: var(--raio); box-shadow: var(--sombra); }
+  .secao-titulo { display: flex; justify-content: space-between; align-items: baseline; margin: 24px 4px 10px; }
+  .secao-titulo h3 { margin: 0; font-size: 18px; font-weight: 700; }
+  .secao-titulo button { color: var(--ciano-escuro); font-weight: 600; font-size: 16px; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; padding: 0 18px; border-radius: 14px; font-weight: 700; font-size: 17px; }
+  .btn-ciano { background: var(--ciano); color: var(--navy); box-shadow: 0 6px 18px rgba(10,193,250,.35); }
+  .btn-contorno { border: 1.5px solid rgba(255,255,255,.55); color: #fff; }
+  .btn-navy { background: var(--navy); color: #fff; }
+  .btn-claro { background: #E8EEF8; color: var(--navy); }
+  .btn-perigo { background: var(--erro); color: #fff; }
+  .btn-largo { width: 100%; }
+
+  .pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 99px; font-size: 14px; font-weight: 700; white-space: nowrap; }
+  .pill.paga { background: var(--ok-bg); color: var(--ok); }
+  .pill.em_aberto { background: var(--aberto-bg); color: var(--ciano-escuro); }
+  .pill.vencida { background: var(--erro-bg); color: var(--erro); }
+
+  .barra { height: 12px; border-radius: 99px; background: #E3E9F4; overflow: hidden; }
+  .barra > i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #0078A8, var(--ciano)); }
+
+  /* login */
+  .tela-escura { background: radial-gradient(700px 500px at 100% 0%, #0A1F5C, transparent 70%), linear-gradient(180deg, var(--navy) 0%, var(--deep) 100%); color: #fff; }
+  .tela-escura .rolagem { position: relative; z-index: 1; padding: 28px 24px 32px; display: flex; flex-direction: column; background: transparent; }
+  .logo-login { width: 230px; display: block; margin: 8px auto 28px; }
+  .titulo-marca { font-style: italic; font-weight: 800; font-size: 30px; line-height: 1; margin: 0; text-transform: uppercase; letter-spacing: -.3px; }
+  .titulo-marca span { color: var(--ciano); }
+  .campo { display: block; margin-top: 16px; }
+  .campo span { display: block; font-size: 16px; font-weight: 600; margin-bottom: 6px; color: #DCE6FF; }
+  .campo input {
+    width: 100%; height: 54px; border-radius: 14px; padding: 0 16px; font-size: 18px;
+    background: rgba(255,255,255,.07); border: 1.5px solid rgba(255,255,255,.18); color: #fff; outline: none;
+  }
+  .campo input::placeholder { color: #7D8DBA; }
+  .campo input:focus { border-color: var(--ciano); background: rgba(10,193,250,.08); }
+  .link-claro { color: var(--ciano); font-weight: 600; font-size: 16px; padding: 10px 0; }
+  .nexla { margin-top: auto; padding-top: 28px; text-align: center; font-size: 14px; color: #6F7FAE; }
+  .codigo-caixas { display: flex; gap: 8px; justify-content: space-between; margin-top: 20px; }
+  .codigo-caixas input { width: 100%; height: 60px; text-align: center; font-size: 26px; font-weight: 700; padding: 0; border-radius: 14px; background: rgba(255,255,255,.07); border: 1.5px solid rgba(255,255,255,.18); color: #fff; outline: none; }
+  .codigo-caixas input:focus { border-color: var(--ciano); }
+  .passos { display: flex; gap: 6px; margin-bottom: 24px; }
+  .passos i { flex: 1; height: 4px; border-radius: 4px; background: rgba(255,255,255,.18); }
+  .passos i.on { background: var(--ciano); }
+  .aceite { display: flex; gap: 12px; align-items: flex-start; margin-top: 18px; line-height: 1.45; color: #C9D4F2; }
+  .aceite input { width: 22px; height: 22px; accent-color: var(--ciano); margin-top: 2px; flex: none; }
+  .aceite a { color: var(--ciano); }
+
+  /* início */
+  .ola-avatar { width: 44px; height: 44px; border-radius: 14px; background: rgba(255,255,255,.08); display: grid; place-items: center; flex: none; border: 1px solid rgba(255,255,255,.12); }
+  .ola-avatar img { width: 30px; }
+  .seletor { display: flex; gap: 8px; margin-top: 18px; overflow-x: auto; scrollbar-width: none; }
+  .seletor button { flex: none; padding: 8px 14px; border-radius: 99px; border: 1px solid rgba(255,255,255,.22); color: #DCE6FF; font-size: 15px; font-weight: 600; }
+  .seletor button[aria-pressed="true"] { background: var(--ciano); border-color: var(--ciano); color: var(--navy); }
+  .imovel-card { display: flex; gap: 14px; align-items: center; padding: 12px; margin-top: -2px; text-align: left; width: 100%; }
+  .thumb { width: 64px; height: 64px; border-radius: 14px; flex: none; display: grid; place-items: center; color: #fff;
+    background: linear-gradient(135deg, #0A1F5C, #0078A8 70%, var(--ciano)); }
+  .imovel-card strong { display: block; font-size: 18px; line-height: 1.2; }
+  .imovel-card span { color: var(--suave); font-size: 15px; }
+  .progresso { padding: 18px; }
+  .progresso .linha { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .progresso .linha strong { font-size: 20px; }
+  .progresso .pct { font-weight: 800; color: var(--ciano-escuro); font-size: 18px; }
+  .mini-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .mini-stats div { background: var(--bg); border-radius: 12px; padding: 10px 12px; }
+  .mini-stats small { display: block; color: var(--suave); font-size: 14px; }
+  .mini-stats b { font-size: 17px; }
+  .proxima {
+    position: relative; overflow: hidden; color: #fff; padding: 20px; border-radius: 22px;
+    background: radial-gradient(400px 220px at 100% 0%, #13307F, transparent 70%), linear-gradient(160deg, #0A1F5C, var(--navy));
+    box-shadow: 0 14px 34px rgba(0, 13, 56, .35);
+  }
+  .proxima.atrasada { background: radial-gradient(400px 220px at 100% 0%, #5C1530, transparent 70%), linear-gradient(160deg, #2A0B26, var(--navy)); }
+  .proxima .rotulo { display: flex; align-items: center; gap: 8px; font-size: 15px; color: #AFC0EC; font-weight: 600; }
+  .proxima .valor { font-size: 38px; font-weight: 800; margin: 6px 0 2px; letter-spacing: -.5px; }
+  .proxima .venc { color: #DCE6FF; font-size: 16px; }
+  .proxima .acoes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+  .aviso-juros { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.08); font-size: 15px; line-height: 1.4; color: #F3D7DE; }
+  .aviso-juros b { color: #fff; }
+  .atalhos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .atalho { padding: 16px; text-align: left; display: flex; flex-direction: column; gap: 10px; min-height: 104px; }
+  .atalho .ico-bg { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: #E6F4FB; color: var(--ciano-escuro); }
+  .atalho.whats .ico-bg { background: #E2F8EA; color: #128C4A; }
+  .atalho strong { font-size: 16px; line-height: 1.25; }
+  .comunicado { display: flex; gap: 12px; padding: 14px 16px; align-items: flex-start; }
+  .comunicado .ico-bg { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: #EEF1FF; color: #3446B8; flex: none; }
+  .comunicado p { margin: 2px 0 0; color: var(--suave); font-size: 15px; line-height: 1.4; }
+
+  /* parcelas */
+  .resumo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 18px; }
+  .resumo div { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1); border-radius: 14px; padding: 10px; }
+  .resumo small { display: block; color: #AFC0EC; font-size: 14px; }
+  .resumo b { font-size: 16px; }
+  .filtros { display: flex; gap: 8px; overflow-x: auto; padding: 16px 16px 4px; scrollbar-width: none; position: sticky; top: 0; z-index: 2; background: var(--bg); }
+  .filtros button { flex: none; padding: 8px 14px; border-radius: 99px; background: #fff; border: 1px solid var(--linha); font-weight: 600; font-size: 15px; color: var(--suave); }
+  .filtros button[aria-pressed="true"] { background: var(--navy); border-color: var(--navy); color: #fff; }
+  .lista { margin: 10px 16px 0; overflow: hidden; }
+  .parcela { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 14px; text-align: left; border-bottom: 1px solid #EDF1F7; }
+  .parcela:last-child { border-bottom: 0; }
+  .parcela .num { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; font-weight: 800; font-size: 16px; background: var(--bg); color: var(--navy); flex: none; }
+  .parcela.paga .num { background: var(--ok-bg); color: var(--ok); }
+  .parcela.vencida .num { background: var(--erro-bg); color: var(--erro); }
+  .parcela .meio { flex: 1; min-width: 0; }
+  .parcela .meio strong { display: block; font-size: 16px; }
+  .parcela .meio span { color: var(--suave); font-size: 15px; }
+  .parcela .dir { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .parcela .dir b { font-size: 16px; }
+  .parcela .dir s { color: var(--suave); font-size: 14px; }
+  .vazio { padding: 32px 16px; text-align: center; color: var(--suave); }
+
+  /* folha inferior */
+  .veu { position: absolute; inset: 0; z-index: 40; background: rgba(0, 4, 20, .5); opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .veu.on { opacity: 1; pointer-events: auto; }
+  .folha {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 41; max-height: 90%; overflow-y: auto;
+    background: #fff; border-radius: 26px 26px 0 0; padding: 10px 20px 34px; transform: translateY(105%); transition: transform .28s cubic-bezier(.2,.8,.2,1);
+  }
+  .folha.on { transform: none; }
+  .folha .alca { width: 44px; height: 5px; border-radius: 9px; background: #D3DAE8; margin: 0 auto 14px; }
+  .folha h3 { margin: 0; font-size: 21px; }
+  .folha .desc { margin: 4px 0 0; color: var(--suave); }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 14px; background: var(--bg); margin: 18px 0; }
+  .seg button { min-height: 44px; border-radius: 11px; font-weight: 700; color: var(--suave); display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+  .seg button[aria-pressed="true"] { background: #fff; color: var(--navy); box-shadow: var(--sombra); }
+  .valor-box { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-radius: 14px; background: var(--bg); }
+  .valor-box small { display: block; color: var(--suave); font-size: 14px; }
+  .valor-box b { font-size: 22px; }
+  .codigo { margin-top: 14px; padding: 14px 16px; border-radius: 14px; border: 1.5px dashed #C6D0E3; font-family: ui-monospace, 'Cascadia Mono', Menlo, monospace; font-size: 15px; line-height: 1.5; word-break: break-all; color: var(--texto); }
+  .qr { display: block; width: 220px; height: 220px; margin: 0 auto; padding: 12px; background: #fff; border-radius: 16px; border: 1px solid var(--linha); }
+  .exemplo { text-align: center; font-size: 14px; color: var(--alerta); margin-top: 8px; font-weight: 600; }
+  .pilha { display: grid; gap: 10px; margin-top: 14px; }
+  .info-lista { margin: 16px 0 0; padding: 0; list-style: none; }
+  .info-lista li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid #EDF1F7; }
+  .info-lista li span { color: var(--suave); }
+  .info-lista li b { text-align: right; }
+
+  /* imóvel */
+  .galeria { position: relative; height: 290px; overflow: hidden; color: #fff; }
+  .galeria .slides { display: flex; height: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+  .galeria .slides::-webkit-scrollbar { display: none; }
+  .galeria .slide { flex: none; width: 100%; height: 100%; scroll-snap-align: start; position: relative; }
+  .galeria .slide svg { width: 100%; height: 100%; display: block; }
+  .galeria .legenda { position: absolute; left: 20px; bottom: 54px; right: 20px; z-index: 2; }
+  .galeria .legenda h2 { margin: 0; font-size: 26px; font-weight: 800; text-shadow: 0 2px 12px rgba(0,0,0,.4); }
+  .galeria .legenda p { margin: 2px 0 0; color: #E0E8FF; }
+  .galeria .pontos { position: absolute; bottom: 34px; left: 0; right: 0; display: flex; gap: 6px; justify-content: center; z-index: 2; }
+  .galeria .pontos i { width: 7px; height: 7px; border-radius: 9px; background: rgba(255,255,255,.5); }
+  .galeria .pontos i.on { width: 20px; background: #fff; }
+  .galeria .contador { position: absolute; top: 14px; right: 16px; z-index: 2; padding: 4px 10px; border-radius: 99px; background: rgba(0,0,0,.4); font-size: 14px; }
+  .fichas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: -22px 16px 0; position: relative; z-index: 3; }
+  .ficha { padding: 14px; }
+  .ficha .ico { color: var(--ciano-escuro); }
+  .ficha small { display: block; color: var(--suave); font-size: 14px; margin-top: 6px; }
+  .ficha b { font-size: 17px; line-height: 1.25; display: block; }
+  .mapa { overflow: hidden; }
+  .mapa svg { display: block; width: 100%; height: 170px; }
+  .mapa .corpo { padding: 14px 16px 16px; }
+  .mapa .corpo p { margin: 4px 0 14px; color: var(--suave); line-height: 1.45; }
+  .descricao { padding: 16px; line-height: 1.55; color: #2C3656; }
+
+  /* documentos e notificações */
+  .doc { display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 16px; text-align: left; border-bottom: 1px solid #EDF1F7; }
+  .doc:last-child { border-bottom: 0; }
+  .doc .ico-bg { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: #FDEBEC; color: #C2283A; flex: none; font-size: 12px; font-weight: 800; }
+  .doc.comp .ico-bg { background: var(--ok-bg); color: var(--ok); }
+  .doc .meio { flex: 1; min-width: 0; }
+  .doc .meio strong { display: block; font-size: 16px; }
+  .doc .meio span { color: var(--suave); font-size: 15px; }
+  .doc > .ico { color: #9AA6C4; }
+  .notif { display: flex; gap: 12px; padding: 16px; width: 100%; text-align: left; border-bottom: 1px solid #EDF1F7; position: relative; }
+  .notif:last-child { border-bottom: 0; }
+  .notif .ico-bg { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; flex: none; }
+  .notif.vencimento .ico-bg { background: var(--alerta-bg); color: var(--alerta); }
+  .notif.pagamento .ico-bg { background: var(--ok-bg); color: var(--ok); }
+  .notif.comunicado .ico-bg { background: #EEF1FF; color: #3446B8; }
+  .notif strong { display: block; font-size: 16px; padding-right: 16px; }
+  .notif p { margin: 2px 0 4px; color: #3A4466; line-height: 1.4; font-size: 15px; }
+  .notif time { color: var(--suave); font-size: 14px; }
+  .notif.nao-lida { background: #F5FAFF; }
+  .notif.nao-lida::after { content: ''; position: absolute; top: 20px; right: 16px; width: 10px; height: 10px; border-radius: 50%; background: var(--ciano-escuro); }
+
+  /* perfil */
+  .avatar { width: 72px; height: 72px; border-radius: 22px; display: grid; place-items: center; font-size: 26px; font-weight: 800; background: var(--ciano); color: var(--navy); flex: none; }
+  .menu { overflow: hidden; }
+  .menu button, .menu a { display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px; text-align: left; border-bottom: 1px solid #EDF1F7; color: var(--texto); text-decoration: none; font-weight: 500; }
+  .menu > :last-child { border-bottom: 0; }
+  .menu .ico:first-child { color: var(--ciano-escuro); }
+  .menu .seta { margin-left: auto; color: #9AA6C4; }
+  .menu .perigo, .menu .perigo .ico:first-child { color: var(--erro); }
+  .assinatura { text-align: center; color: var(--suave); font-size: 14px; margin: 24px 0 8px; line-height: 1.6; }
+  .assinatura img { width: 120px; opacity: .9; display: block; margin: 0 auto 6px; }
+
+  /* toast e diálogo */
+  .toast { position: absolute; left: 50%; bottom: 110px; z-index: 60; transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+    background: var(--navy); color: #fff; padding: 12px 18px; border-radius: 14px; font-weight: 600; display: flex; gap: 8px; align-items: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,.3); transition: all .25s; width: max-content; max-width: 86%; }
+  .toast.on { opacity: 1; transform: translate(-50%, 0); }
+  .toast .ico { color: var(--ciano); }
+  .dialogo { position: absolute; inset: 0; z-index: 70; display: none; place-items: center; padding: 24px; background: rgba(0,4,20,.55); }
+  .dialogo.on { display: grid; }
+  .dialogo .caixa { background: #fff; border-radius: 22px; padding: 22px; width: 100%; }
+  .dialogo h3 { margin: 0 0 8px; font-size: 21px; }
+  .dialogo p { margin: 0 0 18px; color: #3A4466; line-height: 1.5; }
+</style>
+
+<div class="stage">
+  <div class="device">
+    <div class="app" id="app">
+      <div class="statusbar" aria-hidden="true">
+        <span>9:41</span>
+        <span class="sinais">
+          <svg width="18" height="12" viewBox="0 0 18 12" fill="#fff"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="10" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+          <svg width="26" height="12" viewBox="0 0 26 12"><rect x=".5" y=".5" width="22" height="11" rx="3.5" fill="none" stroke="#fff" opacity=".6"/><rect x="2" y="2" width="16" height="8" rx="2" fill="#fff"/><rect x="24" y="4" width="2" height="4" rx="1" fill="#fff" opacity=".6"/></svg>
+        </span>
+      </div>
+
+      <!-- LOGIN -->
+      <section class="tela tela-escura sem-abas" data-tela="login" aria-label="Entrar">
+        <svg class="ondas" data-ondas="login" aria-hidden="true"></svg>
+        <div class="rolagem">
+          <img class="logo-login" src="assets/logo-branco.png" alt="Planejar Assessoria">
+          <p class="titulo-marca">Área do <span>comprador</span></p>
+          <p style="color:#B9C6EA;margin:8px 0 4px;line-height:1.45">Suas parcelas, boletos e documentos na palma da mão.</p>
+          <label class="campo"><span>CPF</span><input id="login-cpf" inputmode="numeric" autocomplete="username" placeholder="000.000.000-00" value="123.456.789-00" data-mascara="cpf"></label>
+          <label class="campo"><span>Senha</span><input type="password" autocomplete="current-password" placeholder="Sua senha" value="••••••••"></label>
+          <button class="btn btn-ciano btn-largo" style="margin-top:22px" data-ir="inicio">Entrar</button>
+          <div style="display:flex;justify-content:space-between;margin-top:6px">
+            <button class="link-claro" data-ir="primeiro-acesso">Primeiro acesso</button>
+            <button class="link-claro" data-ir="primeiro-acesso" data-modo="esqueci">Esqueci a senha</button>
+          </div>
+          <a class="btn btn-contorno btn-largo" style="margin-top:14px" data-whats target="_blank" rel="noopener">
+            <svg class="ico fill" viewBox="0 0 24 24"><use href="#i-whats"/></svg> Falar com a imobiliária
+          </a>
+          <p class="nexla">Desenvolvido por Nexla<br><span style="color:#0AC1FA">Protótipo · dados fictícios</span></p>
+        </div>
+      </section>
+
+      <!-- PRIMEIRO ACESSO -->
+      <section class="tela tela-escura sem-abas" data-tela="primeiro-acesso" aria-label="Primeiro acesso">
+        <svg class="ondas" data-ondas="login" aria-hidden="true"></svg>
+        <div class="rolagem">
+          <button class="icone-btn voltar" data-ir="login" aria-label="Voltar" style="margin-left:0;margin-bottom:20px">
+            <svg class="ico" viewBox="0 0 24 24"><use href="#i-chev-l"/></svg>
+          </button>
+          <div class="passos"><i class="on"></i><i data-passo-barra="2"></i><i data-passo-barra="3"></i></div>
+
+          <div data-passo="1">
+            <p class="titulo-marca" id="pa-titulo">Primeiro <span>acesso</span></p>
+            <p style="color:#B9C6EA;line-height:1.5">Digite seu CPF. Vamos enviar um código de 6 dígitos para o WhatsApp cadastrado na imobiliária.</p>
+            <label class="campo"><span>CPF</span><input inputmode="numeric" placeholder="000.000.000-00" value="123.456.789-00" data-mascara="cpf"></label>
+            <button class="btn btn-ciano btn-largo" style="margin-top:22px" data-passo-ir="2">Enviar código</button>
+          </div>
+
+          <div data-passo="2" hidden>
+            <p class="titulo-marca">Digite o <span>código</span></p>
+            <p style="color:#B9C6EA;line-height:1.5">Enviamos para o WhatsApp <b style="color:#fff">(65) 9 ••••-3761</b>. O código vale por 10 minutos.</p>
+            <div class="codigo-caixas" id="codigo-caixas">
+              <input inputmode="numeric" maxlength="1" aria-label="Dígito 1"><input inputmode="numeric" maxlength="1" aria-label="Dígito 2"><input inputmode="numeric" maxlength="1" aria-label="Dígito 3"><input inputmode="numeric" maxlength="1" aria-label="Dígito 4"><input inputmode="numeric" maxlength="1" aria-label="Dígito 5"><input inputmode="numeric" maxlength="1" aria-label="Dígito 6">
+            </div>
+            <button class="btn btn-ciano btn-largo" style="margin-top:22px" data-passo-ir="3">Confirmar</button>
+            <button class="link-claro" style="margin-top:6px" data-toast="Novo código enviado">Não recebi · reenviar código</button>
+            <button class="link-claro" style="display:block" data-toast="Código enviado para o e-mail cadastrado">Receber por e-mail</button>
+          </div>
+
+          <div data-passo="3" hidden>
+            <p class="titulo-marca">Crie sua <span>senha</span></p>
+            <label class="campo"><span>Nova senha</span><input type="password" placeholder="Mínimo de 8 caracteres"></label>
+            <label class="campo"><span>Repita a senha</span><input type="password" placeholder="Digite de novo"></label>
+            <label class="aceite" data-so-primeiro><input type="checkbox" checked> <span>Li e aceito os <a href="#" data-toast="Abre os Termos de uso">Termos de uso</a> e a <a href="#" data-toast="Abre a Política de privacidade">Política de privacidade</a>.</span></label>
+            <button class="btn btn-ciano btn-largo" style="margin-top:22px" data-ir="inicio">Salvar e entrar</button>
+          </div>
+          <p class="nexla">Desenvolvido por Nexla<br><span style="color:#0AC1FA">Protótipo · dados fictícios</span></p>
+        </div>
+      </section>
+
+      <!-- INÍCIO -->
+      <section class="tela" data-tela="inicio" aria-label="Início">
+        <div class="rolagem">
+          <header class="topo" style="padding-bottom:44px">
+            <svg class="ondas" data-ondas="topo" aria-hidden="true"></svg>
+            <div class="topo-linha">
+              <div class="ola-avatar"><img src="assets/simbolo-branco.png" alt=""></div>
+              <div style="flex:1">
+                <h2>Olá, Maria</h2>
+                <p class="sub">Que bom ver você por aqui</p>
+              </div>
+              <button class="icone-btn" data-ir="notificacoes" aria-label="Notificações">
+                <svg class="ico" viewBox="0 0 24 24"><use href="#i-sino"/></svg><span class="badge" data-badge>2</span>
+              </button>
+            </div>
+            <div class="seletor" id="seletor" role="group" aria-label="Escolha o imóvel"></div>
+          </header>
+          <div class="pad" style="margin-top:-28px;position:relative;z-index:2">
+            <button class="card imovel-card" data-ir="imovel" id="inicio-imovel"></button>
+            <div class="card progresso" style="margin-top:12px" id="inicio-progresso"></div>
+            <div style="margin-top:12px" id="inicio-proxima"></div>
+            <div class="secao-titulo"><h3>Atalhos</h3></div>
+            <div class="atalhos">
+              <button class="card atalho" data-ir="parcelas"><span class="ico-bg"><svg class="ico" viewBox="0 0 24 24"><use href="#i-lista"/></svg></span><strong>Minhas parcelas</strong></button>
+              <button class="card atalho" data-ir="imovel"><span class="ico-bg"><svg class="ico" viewBox="0 0 24 24"><use href="#i-pin"/></svg></span><strong>Meu imóvel</strong></button>
+              <button class="card atalho" data-ir="documentos"><span class="ico-bg"><svg class="ico" viewBox="0 0 24 24"><use href="#i-doc"/></svg></span><strong>Documentos</strong></button>
+              <a class="card atalho whats" data-whats target="_blank" rel="noopener"><span class="ico-bg"><svg class="ico fill" viewBox="0 0 24 24"><use href="#i-whats"/></svg></span><strong>Fale com a imobiliária</strong></a>
+            </div>
+            <div class="secao-titulo"><h3>Comunicado</h3><button data-ir="notificacoes">Ver todos</button></div>
+            <div class="card comunicado">
+              <span class="ico-bg"><svg class="ico" viewBox="0 0 24 24"><use href="#i-megafone"/></svg></span>
+              <div><strong>Horário de atendimento no feriado</strong><p>No dia 15/11 não haverá expediente. O app continua funcionando normalmente para boletos e Pix.</p></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PARCELAS -->
+      <section class="tela" data-tela="parcelas" aria-label="Minhas parcelas">
+        <div class="rolagem" id="rolagem-parcelas">
+          <header class="topo">
+            <svg class="ondas" data-ondas="topo" aria-hidden="true"></svg>
+            <h2>Minhas parcelas</h2>
+            <p class="sub" data-imovel-nome></p>
+            <div class="resumo" id="parcelas-resumo"></div>
+          </header>
+          <div class="filtros" id="filtros" role="group" aria-label="Filtrar parcelas"></div>
+          <div class="card lista" id="lista-parcelas"></div>
+        </div>
+      </section>
+
+      <!-- MEU IMÓVEL -->
+      <section class="tela" data-tela="imovel" aria-label="Meu imóvel">
+        <div class="rolagem">
+          <div class="galeria">
+            <div class="slides" id="slides"></div>
+            <span class="contador" id="contador-foto">1 / 3</span>
+            <div class="legenda"><h2 data-imovel-nome></h2><p data-imovel-emp></p></div>
+            <div class="pontos" id="pontos"></div>
+          </div>
+          <div class="fichas" id="fichas"></div>
+          <div class="pad">
+            <div class="secao-titulo"><h3>Localização</h3></div>
+            <div class="card mapa">
+              <svg viewBox="0 0 380 170" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                <rect width="380" height="170" fill="#E9EEF5"/>
+                <path d="M0 120 C80 100 140 140 220 110 S330 80 380 95" stroke="#BFD9EA" stroke-width="16" fill="none"/>
+                <g stroke="#fff" stroke-width="9" fill="none"><path d="M-10 60H390"/><path d="M60 -10V180"/><path d="M175 -10V180"/><path d="M290 -10V180"/><path d="M-10 150H390"/></g>
+                <g fill="#DCE9D8"><rect x="74" y="72" width="88" height="66" rx="4"/><rect x="304" y="8" width="70" height="40" rx="4"/></g>
+                <g fill="#D6DDEA"><rect x="189" y="8" width="88" height="40" rx="4"/><rect x="8" y="8" width="40" height="40" rx="4"/><rect x="189" y="72" width="88" height="66" rx="4"/></g>
+                <rect x="203" y="82" width="34" height="26" rx="3" fill="#0AC1FA" opacity=".35" stroke="#0078A8" stroke-width="2"/>
+                <g transform="translate(220 95)"><circle r="20" fill="#0AC1FA" opacity=".18"/><path d="M0 0c-9-10-13-16-13-22a13 13 0 0 1 26 0c0 6-4 12-13 22z" transform="translate(0 -4)" fill="#000D38"/><circle cy="-26" r="5" fill="#0AC1FA"/></g>
+              </svg>
+              <div class="corpo">
+                <strong data-imovel-nome></strong>
+                <p data-imovel-end></p>
+                <a class="btn btn-navy btn-largo" id="link-mapa" target="_blank" rel="noopener" style="text-decoration:none">
+                  <svg class="ico" viewBox="0 0 24 24"><use href="#i-externo"/></svg> Abrir no mapa
+                </a>
+              </div>
+            </div>
+            <div class="secao-titulo"><h3>Sobre o imóvel</h3></div>
+            <div class="card descricao" data-imovel-desc></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- DOCUMENTOS -->
+      <section class="tela" data-tela="documentos" aria-label="Documentos">
+        <div class="rolagem">
+          <header class="topo">
+            <svg class="ondas" data-ondas="topo" aria-hidden="true"></svg>
+            <h2>Documentos</h2>
+            <p class="sub" data-imovel-nome></p>
+          </header>
+          <div class="pad">
+            <div class="secao-titulo"><h3>Enviados pela imobiliária</h3></div>
+            <div class="card" style="overflow:hidden" id="docs"></div>
+            <div class="secao-titulo"><h3>Comprovantes de pagamento</h3></div>
+            <div class="card" style="overflow:hidden" id="comprovantes"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- NOTIFICAÇÕES -->
+      <section class="tela sem-abas" data-tela="notificacoes" aria-label="Notificações">
+        <div class="rolagem">
+          <header class="topo">
+            <svg class="ondas" data-ondas="topo" aria-hidden="true"></svg>
+            <div class="topo-linha">
+              <button class="icone-btn voltar" data-voltar aria-label="Voltar"><svg class="ico" viewBox="0 0 24 24"><use href="#i-chev-l"/></svg></button>
+              <h2 style="flex:1">Notificações</h2>
+            </div>
+          </header>
+          <div class="pad">
+            <div class="secao-titulo"><h3>Recentes</h3><button id="marcar-lidas">Marcar todas como lidas</button></div>
+            <div class="card" style="overflow:hidden" id="lista-notif"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PERFIL -->
+      <section class="tela" data-tela="perfil" aria-label="Perfil">
+        <div class="rolagem">
+          <header class="topo">
+            <svg class="ondas" data-ondas="topo" aria-hidden="true"></svg>
+            <div class="topo-linha" style="gap:16px">
+              <div class="avatar">MA</div>
+              <div><h2>Maria Aparecida Souza</h2><p class="sub">CPF 123.456.789-00</p></div>
+            </div>
+          </header>
+          <div class="pad">
+            <div class="secao-titulo"><h3>Meus dados</h3></div>
+            <div class="card" style="padding:0 16px">
+              <ul class="info-lista" style="margin:0">
+                <li><span>WhatsApp</span><b>(65) 9 8123-4567</b></li>
+                <li><span>E-mail</span><b>maria.souza@email.com</b></li>
+                <li style="border:0"><span>Imóveis</span><b id="perfil-imoveis">1</b></li>
+              </ul>
+            </div>
+            <p style="color:var(--suave);font-size:15px;margin:8px 4px 0;line-height:1.45">Para corrigir seus dados, fale com a imobiliária.</p>
+            <div class="secao-titulo"><h3>Conta</h3></div>
+            <div class="card menu">
+              <button data-folha="senha"><svg class="ico" viewBox="0 0 24 24"><use href="#i-cadeado"/></svg>Trocar senha<svg class="ico seta" viewBox="0 0 24 24"><use href="#i-chev-r"/></svg></button>
+              <button data-ir="notificacoes"><svg class="ico" viewBox="0 0 24 24"><use href="#i-sino"/></svg>Notificações<svg class="ico seta" viewBox="0 0 24 24"><use href="#i-chev-r"/></svg></button>
+              <a data-whats target="_blank" rel="noopener"><svg class="ico fill" viewBox="0 0 24 24"><use href="#i-whats"/></svg>Fale com a imobiliária<svg class="ico seta" viewBox="0 0 24 24"><use href="#i-chev-r"/></svg></a>
+              <button data-toast="Abre a Política de privacidade"><svg class="ico" viewBox="0 0 24 24"><use href="#i-escudo"/></svg>Privacidade e termos<svg class="ico seta" viewBox="0 0 24 24"><use href="#i-chev-r"/></svg></button>
+              <button data-ir="login"><svg class="ico" viewBox="0 0 24 24"><use href="#i-sair"/></svg>Sair</button>
+              <button class="perigo" data-dialogo="excluir"><svg class="ico" viewBox="0 0 24 24"><use href="#i-lixo"/></svg>Excluir minha conta</button>
+            </div>
+            <div class="assinatura">
+              <img src="assets/logo-branco.png" alt="" style="filter:brightness(0) saturate(100%) invert(9%) sepia(60%) saturate(4000%) hue-rotate(225deg)">
+              Planejar Assessoria · CRECI 4.447 MT<br>Versão 1.0.0 · Desenvolvido por Nexla
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <nav class="abas" id="abas" aria-label="Menu principal">
+        <button data-ir="inicio"><svg class="ico" viewBox="0 0 24 24"><use href="#i-casa"/></svg>Início</button>
+        <button data-ir="parcelas"><svg class="ico" viewBox="0 0 24 24"><use href="#i-lista"/></svg>Parcelas</button>
+        <button data-ir="imovel"><svg class="ico" viewBox="0 0 24 24"><use href="#i-pin"/></svg>Imóvel</button>
+        <button data-ir="documentos"><svg class="ico" viewBox="0 0 24 24"><use href="#i-doc"/></svg>Documentos</button>
+        <button data-ir="perfil"><svg class="ico" viewBox="0 0 24 24"><use href="#i-user"/></svg>Perfil</button>
+      </nav>
+
+      <div class="veu" id="veu"></div>
+      <div class="folha" id="folha" role="dialog" aria-modal="true"><div class="alca"></div><div id="folha-conteudo"></div></div>
+      <div class="toast" id="toast" role="status" aria-live="polite"><svg class="ico" viewBox="0 0 24 24"><use href="#i-check"/></svg><span></span></div>
+      <div class="dialogo" id="dialogo-excluir" role="alertdialog" aria-modal="true" aria-labelledby="dx-t">
+        <div class="caixa">
+          <h3 id="dx-t">Excluir sua conta?</h3>
+          <p>Seu acesso ao app e seus dados pessoais serão apagados. Seu contrato e suas parcelas continuam válidos com a imobiliária: a exclusão não cancela a compra nem quita parcelas.</p>
+          <div class="pilha" style="margin:0">
+            <button class="btn btn-perigo btn-largo" data-ir="login" data-fecha-dialogo>Excluir conta</button>
+            <button class="btn btn-claro btn-largo" data-fecha-dialogo>Cancelar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="proto" id="proto" aria-label="Controles do protótipo">
+    <button class="proto-fechar" id="proto-fechar" aria-label="Fechar"><svg class="ico" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <h1>Protótipo<span>do app</span></h1>
+    <p>Navegue pelas telas como no celular. Os dados são fictícios; boleto, Pix e valores são só exemplos.</p>
+
+    <h2>Telas</h2>
+    <div class="proto-telas" id="proto-telas">
+      <button data-ir="login">Login</button>
+      <button data-ir="primeiro-acesso">Primeiro acesso</button>
+      <button data-ir="inicio">Início</button>
+      <button data-ir="parcelas">Minhas parcelas</button>
+      <button data-abrir-pagamento>Boleto e Pix</button>
+      <button data-ir="imovel">Meu imóvel</button>
+      <button data-ir="documentos">Documentos</button>
+      <button data-ir="notificacoes">Notificações</button>
+      <button data-ir="perfil">Perfil</button>
+    </div>
+
+    <h2>Simular situação</h2>
+    <label class="chave"><span>Parcela vencida<small>Como o app avisa um atraso</small></span><input type="checkbox" id="sim-vencida"></label>
+    <label class="chave"><span>Comprador com 2 imóveis<small>Aparece o seletor no Início</small></span><input type="checkbox" id="sim-dois"></label>
+
+    <h2>Para sua aprovação</h2>
+    <ol>
+      <li><b>Cores e logo</b> aplicadas nas telas.</li>
+      <li><b>Tela Início:</b> imóvel, progresso, próxima parcela e botões Boleto/Pix.</li>
+      <li><b>Nomes dos menus e textos</b> do app.</li>
+      <li><b>Aviso de vencimento:</b> 3 dias antes e no dia do vencimento?</li>
+      <li><b>Cobranças avulsas</b> (ex.: taxa de transferência) aparecem no app?</li>
+      <li><b>Parcela vencida:</b> o comprador só paga com juros pelo boleto/Pix atual, sem mudar a data pelo app?</li>
+    </ol>
+    <p class="rodape">Nexla Automação e Inteligência Artificial</p>
+  </aside>
+</div>
+<button class="proto-abrir" id="proto-abrir">Telas do protótipo</button>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-casa" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+    <symbol id="i-lista" viewBox="0 0 24 24"><path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="9" r="4"/></symbol>
+    <symbol id="i-sino" viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
+    <symbol id="i-copiar" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></symbol>
+    <symbol id="i-barras" viewBox="0 0 24 24"><path d="M3 5v14M6.5 5v14M9 5v14M12.5 5v14M16 5v14M18.5 5v14M21 5v14"/></symbol>
+    <symbol id="i-qr" viewBox="0 0 24 24"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h3v3h-3zM20 14v.01M14 20h.01M17 17h4v4h-4"/></symbol>
+    <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+    <symbol id="i-chev-l" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-alerta" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></symbol>
+    <symbol id="i-baixar" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></symbol>
+    <symbol id="i-externo" viewBox="0 0 24 24"><path d="M14 3h7v7M21 3l-9 9M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/></symbol>
+    <symbol id="i-cadeado" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+    <symbol id="i-sair" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
+    <symbol id="i-lixo" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></symbol>
+    <symbol id="i-escudo" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+    <symbol id="i-megafone" viewBox="0 0 24 24"><path d="M3 11v3a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></symbol>
+    <symbol id="i-recibo" viewBox="0 0 24 24"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2zM9 8h6M9 12h6"/></symbol>
+    <symbol id="i-regua" viewBox="0 0 24 24"><path d="M3 17 17 3l4 4L7 21zM7 13l2 2M10 10l2 2M13 7l2 2"/></symbol>
+    <symbol id="i-predio" viewBox="0 0 24 24"><path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 9h2a2 2 0 0 1 2 2v10M2 21h20M8 7h4M8 11h4M8 15h4"/></symbol>
+    <symbol id="i-calendario" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+    <symbol id="i-whats" viewBox="0 0 24 24"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21c5.46 0 9.91-4.45 9.91-9.91C21.95 6.45 17.5 2 12.04 2zm0 18.15c-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.2 8.2 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24 4.54 0 8.24 3.7 8.24 8.24 0 4.55-3.7 8.24-8.23 8.24zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.13-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.22.25-.86.85-.86 2.07 0 1.22.89 2.4 1.01 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.14-1.18-.06-.1-.22-.16-.47-.28z"/></symbol>
+  </defs>
+</svg>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------------- dados fictícios ----------------
+  const HOJE = new Date(2026, 9, 23);
+  const WHATS = '5565999373761';
+  const COMPRADOR = { nome: 'Maria Aparecida Souza', cpf: '123.456.789-00' };
+
+  const IMOVEIS = [
+    {
+      id: 'a', identificacao: 'Lote 12 · Quadra B', empreendimento: 'Residencial Parque das Águas', cidade: 'Cuiabá · MT',
+      endereco: 'Rua das Palmeiras, s/n · Lote 12, Quadra B · Residencial Parque das Águas, Cuiabá - MT',
+      metragem: 360, lat: -15.5561, lng: -56.0735, total: 60, valor: 1250, inicio: [2025, 4, 20], pagas: 18,
+      descricao: 'Lote plano de esquina, com 12 m de frente e 30 m de fundo. O loteamento tem asfalto, rede de água e esgoto, energia e iluminação pública.',
+      fotos: ['Vista do lote', 'Portaria do residencial', 'Área de lazer'],
+    },
+    {
+      id: 'b', identificacao: 'Lote 03 · Quadra F', empreendimento: 'Loteamento Jardim Florença', cidade: 'Várzea Grande · MT',
+      endereco: 'Avenida Florença, s/n · Lote 03, Quadra F · Jardim Florença, Várzea Grande - MT',
+      metragem: 300, lat: -15.6467, lng: -56.1325, total: 48, valor: 890, inicio: [2026, 3, 10], pagas: 7,
+      descricao: 'Lote de meio de quadra, com 10 m de frente e 30 m de fundo, próximo à avenida principal do loteamento.',
+      fotos: ['Vista do lote', 'Avenida principal'],
+    },
+  ];
+
+  const estado = { tela: 'login', historico: [], imovel: 'a', filtro: 'todas', vencida: false, dois: false, lidas: new Set() };
+
+  // ---------------- formatação ----------------
+  const moeda = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace(/ /g, ' ');
+  const data = (d) => d.toLocaleDateString('pt-BR');
+  const dias = (d) => Math.round((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(HOJE.getFullYear(), HOJE.getMonth(), HOJE.getDate())) / 864e5);
+  const quando = (d) => { const n = dias(d); return n === 0 ? 'vence hoje' : n === 1 ? 'vence amanhã' : n > 0 ? `faltam ${n} dias` : `há ${-n} dia${n === -1 ? '' : 's'}`; };
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const icone = (id, extra = '') => `<svg class="ico ${extra}" viewBox="0 0 24 24"><use href="#i-${id}"/></svg>`;
+
+  function imovelAtual() { return IMOVEIS.find((i) => i.id === estado.imovel) || IMOVEIS[0]; }
+
+  function parcelasDe(im) {
+    const vencida = estado.vencida && im.id === 'a';
+    const pagas = vencida ? im.pagas - 1 : im.pagas;
+    const lista = [];
+    for (let n = 1; n <= im.total; n++) {
+      const venc = new Date(im.inicio[0], im.inicio[1] + n - 1, im.inicio[2]);
+      let status = 'em_aberto';
+      let pagoEm = null;
+      let atualizado = null;
+      if (n <= pagas) { status = 'paga'; pagoEm = new Date(venc.getFullYear(), venc.getMonth(), venc.getDate() - ((n * 7) % 5)); }
+      else if (vencida && n === pagas + 1) {
+        status = 'vencida';
+        // no app real este valor vem do Asaas; aqui é só exemplo (multa 2% + juros 1% a.m.)
+        atualizado = Math.round((im.valor * 1.02 + im.valor * 0.01 * (-dias(venc)) / 30) * 100) / 100;
+      }
+      lista.push({ n, total: im.total, venc, valor: im.valor, status, pagoEm, atualizado });
+    }
+    return lista;
+  }
+
+  // ---------------- navegação ----------------
+  const telas = [...document.querySelectorAll('.tela')];
+  const COM_ABAS = ['inicio', 'parcelas', 'imovel', 'documentos', 'perfil'];
+
+  function ir(nome, { voltar = false } = {}) {
+    if (!voltar && estado.tela !== nome) estado.historico.push(estado.tela);
+    estado.tela = nome;
+    fecharFolha();
+    telas.forEach((t) => t.classList.toggle('ativa', t.dataset.tela === nome));
+    const abas = document.getElementById('abas');
+    abas.hidden = !COM_ABAS.includes(nome);
+    abas.querySelectorAll('button').forEach((b) => { if (b.dataset.ir === nome) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+    document.querySelectorAll('#proto-telas [data-ir]').forEach((b) => b.setAttribute('aria-current', String(b.dataset.ir === nome)));
+    const t = telas.find((x) => x.dataset.tela === nome);
+    t?.querySelector('.rolagem')?.scrollTo(0, 0);
+    if (nome === 'primeiro-acesso') passo(1);
+    render();
+    if (nome === 'parcelas') rolarParaProxima();
+    document.getElementById('proto').classList.remove('aberto');
+  }
+
+  function voltar() { ir(estado.historico.pop() || 'inicio', { voltar: true }); }
+
+  // ---------------- renderização ----------------
+  function render() {
+    const im = imovelAtual();
+    const ps = parcelasDe(im);
+    const pagas = ps.filter((p) => p.status === 'paga');
+    const abertas = ps.filter((p) => p.status !== 'paga');
+    const vencidas = ps.filter((p) => p.status === 'vencida');
+    const proxima = abertas[0];
+    const totalPago = pagas.reduce((s, p) => s + p.valor, 0);
+    const saldo = abertas.reduce((s, p) => s + p.valor, 0);
+    const pct = Math.round((pagas.length / im.total) * 100);
+
+    document.querySelectorAll('[data-imovel-nome]').forEach((el) => (el.textContent = im.identificacao));
+    document.querySelectorAll('[data-imovel-emp]').forEach((el) => (el.textContent = `${im.empreendimento} · ${im.cidade}`));
+    document.querySelectorAll('[data-imovel-end]').forEach((el) => (el.textContent = im.endereco));
+    document.querySelectorAll('[data-imovel-desc]').forEach((el) => (el.textContent = im.descricao));
+    document.getElementById('perfil-imoveis').textContent = estado.dois ? '2' : '1';
+    document.querySelectorAll('[data-whats]').forEach((a) => (a.href = linkWhats()));
+
+    // seletor de imóvel
+    const sel = document.getElementById('seletor');
+    sel.hidden = !estado.dois;
+    sel.innerHTML = estado.dois ? IMOVEIS.map((i) => `<button data-imovel="${i.id}" aria-pressed="${i.id === im.id}">${esc(i.identificacao)}</button>`).join('') : '';
+
+    document.getElementById('inicio-imovel').innerHTML = `
+      <span class="thumb"><img src="assets/simbolo-branco.png" alt="" style="width:38px"></span>
+      <span style="flex:1;min-width:0"><strong>${esc(im.identificacao)}</strong><span>${esc(im.empreendimento)}</span></span>
+      ${icone('chev-r')}`;
+
+    document.getElementById('inicio-progresso').innerHTML = `
+      <div class="linha"><strong>${pagas.length} de ${im.total} parcelas pagas</strong><span class="pct">${pct}%</span></div>
+      <div class="barra" role="progressbar" aria-valuemin="0" aria-valuemax="${im.total}" aria-valuenow="${pagas.length}" aria-label="Parcelas pagas"><i style="width:${pct}%"></i></div>
+      <div class="mini-stats"><div><small>Total pago</small><b>${moeda(totalPago)}</b></div><div><small>Faltam</small><b>${abertas.length} parcelas</b></div></div>`;
+
+    const prox = document.getElementById('inicio-proxima');
+    if (!proxima) {
+      prox.innerHTML = `<div class="card" style="padding:20px;text-align:center"><strong>Parabéns! Todas as parcelas foram pagas.</strong></div>`;
+    } else if (proxima.status === 'vencida') {
+      const depois = abertas[1];
+      prox.innerHTML = `
+        <div class="proxima atrasada">
+          <svg class="ondas" data-ondas="card" aria-hidden="true"></svg>
+          <div style="position:relative">
+            <span class="rotulo" style="color:#FFB3C0">${icone('alerta')} Parcela ${proxima.n}/${proxima.total} vencida</span>
+            <div class="valor">${moeda(proxima.atualizado)}</div>
+            <div class="venc">Venceu em ${data(proxima.venc)} · ${quando(proxima.venc)}</div>
+            <div class="aviso-juros">Valor original <b>${moeda(proxima.valor)}</b>. Juros e multa já incluídos, conforme o boleto.</div>
+            <div class="acoes">
+              <button class="btn btn-contorno" data-pagar="${proxima.n}" data-aba="boleto">${icone('barras')} Boleto</button>
+              <button class="btn btn-ciano" data-pagar="${proxima.n}" data-aba="pix">${icone('qr')} Pix</button>
+            </div>
+          </div>
+        </div>
+        ${depois ? `<button class="card parcela" style="margin-top:12px;border-radius:var(--raio)" data-detalhe="${depois.n}">
+            <span class="num">${depois.n}</span>
+            <span class="meio"><strong>Próxima parcela</strong><span>Vence em ${data(depois.venc)}</span></span>
+            <span class="dir"><b>${moeda(depois.valor)}</b></span></button>` : ''}`;
+    } else {
+      prox.innerHTML = `
+        <div class="proxima">
+          <svg class="ondas" data-ondas="card" aria-hidden="true"></svg>
+          <div style="position:relative">
+            <span class="rotulo">${icone('calendario')} Próxima parcela · ${proxima.n}/${proxima.total}</span>
+            <div class="valor">${moeda(proxima.valor)}</div>
+            <div class="venc">Vence em ${data(proxima.venc)} · ${quando(proxima.venc)}</div>
+            <div class="acoes">
+              <button class="btn btn-contorno" data-pagar="${proxima.n}" data-aba="boleto">${icone('barras')} Boleto</button>
+              <button class="btn btn-ciano" data-pagar="${proxima.n}" data-aba="pix">${icone('qr')} Pix</button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // parcelas
+    document.getElementById('parcelas-resumo').innerHTML = `
+      <div><small>Total pago</small><b>${moeda(totalPago)}</b></div>
+      <div><small>Faltam</small><b>${abertas.length} de ${im.total}</b></div>
+      <div><small>Saldo</small><b>${moeda(saldo)}</b></div>`;
+    const contagem = { todas: ps.length, em_aberto: ps.filter((p) => p.status === 'em_aberto').length, vencida: vencidas.length, paga: pagas.length };
+    const rotulos = { todas: 'Todas', em_aberto: 'Em aberto', vencida: 'Vencidas', paga: 'Pagas' };
+    document.getElementById('filtros').innerHTML = Object.keys(rotulos)
+      .map((k) => `<button data-filtro="${k}" aria-pressed="${estado.filtro === k}">${rotulos[k]} (${contagem[k]})</button>`).join('');
+    const filtradas = estado.filtro === 'todas' ? ps : ps.filter((p) => p.status === estado.filtro);
+    document.getElementById('lista-parcelas').innerHTML = filtradas.length
+      ? filtradas.map(linhaParcela).join('')
+      : `<div class="vazio">Nenhuma parcela ${rotulos[estado.filtro].toLowerCase().replace(/s$/, '')} 🎉</div>`;
+
+    // imóvel
+    const cores = [['#0A1F5C', '#0078A8'], ['#13307F', '#0AC1FA'], ['#00082A', '#3446B8']];
+    document.getElementById('slides').innerHTML = im.fotos.map((f, i) => `
+      <div class="slide" role="img" aria-label="${esc(f)}">
+        <svg viewBox="0 0 400 290" preserveAspectRatio="xMidYMid slice">
+          <defs><linearGradient id="g${i}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${cores[i % 3][0]}"/><stop offset="1" stop-color="${cores[i % 3][1]}"/></linearGradient></defs>
+          <rect width="400" height="290" fill="url(#g${i})"/>
+          <path d="M0 210 Q100 170 200 200 T400 190 V290 H0z" fill="#000D38" opacity=".55"/>
+          <path d="M0 240 Q120 215 240 235 T400 230 V290 H0z" fill="#000D38" opacity=".7"/>
+          <g fill="none" stroke="#fff" opacity=".85" stroke-width="2.4" transform="translate(178 104)"><path d="M0 28 22 10l22 18v28H0z"/><path d="M16 56V40h12v16"/></g>
+          <text x="200" y="182" fill="#fff" opacity=".8" font-size="14" text-anchor="middle" font-family="Saira">Foto enviada pela imobiliária · ${esc(f)}</text>
+        </svg>
+      </div>`).join('');
+    document.getElementById('pontos').innerHTML = im.fotos.map((_, i) => `<i class="${i === 0 ? 'on' : ''}"></i>`).join('');
+    document.getElementById('contador-foto').textContent = `1 / ${im.fotos.length}`;
+    document.getElementById('fichas').innerHTML = `
+      <div class="card ficha">${icone('regua')}<small>Metragem</small><b>${im.metragem} m²</b></div>
+      <div class="card ficha">${icone('predio')}<small>Empreendimento</small><b>${esc(im.empreendimento)}</b></div>`;
+    document.getElementById('link-mapa').href = `https://www.google.com/maps/search/?api=1&query=${im.lat},${im.lng}`;
+
+    // documentos
+    const docs = [
+      ['Contrato de compra e venda', 'PDF · enviado em 20/05/2025'],
+      ['Planta do loteamento', 'PDF · enviado em 20/05/2025'],
+      ['Aditivo contratual', 'PDF · enviado em 03/02/2026'],
+    ];
+    document.getElementById('docs').innerHTML = docs.map(([t, s]) => `
+      <button class="doc" data-toast="No app, o PDF abre aqui mesmo"><span class="ico-bg">PDF</span><span class="meio"><strong>${t}</strong><span>${s}</span></span>${icone('baixar')}</button>`).join('');
+    document.getElementById('comprovantes').innerHTML = pagas.slice(-4).reverse().map((p) => `
+      <button class="doc comp" data-toast="Abre o comprovante do Asaas"><span class="ico-bg">${icone('recibo')}</span><span class="meio"><strong>Parcela ${p.n}/${p.total}</strong><span>Pago em ${data(p.pagoEm)} · ${moeda(p.valor)}</span></span>${icone('externo')}</button>`).join('')
+      + `<button class="doc" style="justify-content:center;color:var(--ciano-escuro);font-weight:700" data-ir="parcelas" data-filtro-ir="paga">Ver todos os ${pagas.length} comprovantes</button>`;
+
+    // notificações
+    const ultimaPaga = pagas[pagas.length - 1];
+    const notifs = [
+      proxima && proxima.status === 'vencida'
+        ? { id: 'v', tipo: 'vencimento', t: `Parcela ${proxima.n} vencida`, c: `A parcela ${proxima.n} venceu em ${data(proxima.venc)}. Você pode pagar pelo app com boleto ou Pix.`, q: 'hoje, 08:00' }
+        : proxima && { id: 'v', tipo: 'vencimento', t: `Parcela ${proxima.n} vence em breve`, c: `Sua parcela de ${moeda(proxima.valor)} vence em ${data(proxima.venc)}. Toque para pagar.`, q: 'hoje, 08:00' },
+      ultimaPaga && { id: 'p', tipo: 'pagamento', t: 'Pagamento recebido ✓', c: `Recebemos o pagamento da parcela ${ultimaPaga.n}/${ultimaPaga.total}. Obrigado!`, q: data(ultimaPaga.pagoEm) },
+      { id: 'c1', tipo: 'comunicado', t: 'Horário de atendimento no feriado', c: 'No dia 15/11 não haverá expediente. O app continua funcionando normalmente.', q: '21/10/2026', lida: true },
+      { id: 'c2', tipo: 'comunicado', t: 'Manutenção das vias do loteamento', c: 'A partir de 03/11 começa o recapeamento da avenida principal. Previsão de 10 dias.', q: '14/10/2026', lida: true },
+    ].filter(Boolean);
+    const icoNotif = { vencimento: 'calendario', pagamento: 'check', comunicado: 'megafone' };
+    document.getElementById('lista-notif').innerHTML = notifs.map((n) => {
+      const lida = n.lida || estado.lidas.has(n.id);
+      return `<button class="notif ${n.tipo} ${lida ? '' : 'nao-lida'}" data-notif="${n.id}" data-tipo="${n.tipo}">
+        <span class="ico-bg">${icone(icoNotif[n.tipo])}</span>
+        <span><strong>${esc(n.t)}</strong><p>${esc(n.c)}</p><time>${n.q}</time></span></button>`;
+    }).join('');
+    const naoLidas = notifs.filter((n) => !n.lida && !estado.lidas.has(n.id)).length;
+    document.querySelectorAll('[data-badge]').forEach((b) => { b.textContent = naoLidas; b.hidden = naoLidas === 0; });
+
+    desenharOndas();
+  }
+
+  function linhaParcela(p) {
+    const direita = p.status === 'paga'
+      ? `<b>${moeda(p.valor)}</b><span class="pill paga">Paga</span>`
+      : p.status === 'vencida'
+        ? `<s>${moeda(p.valor)}</s><b>${moeda(p.atualizado)}</b><span class="pill vencida">Vencida</span>`
+        : `<b>${moeda(p.valor)}</b><span class="pill em_aberto">Em aberto</span>`;
+    const sub = p.status === 'paga' ? `Pago em ${data(p.pagoEm)}` : p.status === 'vencida' ? `Venceu em ${data(p.venc)}` : `Vence em ${data(p.venc)}`;
+    return `<button class="parcela ${p.status}" data-detalhe="${p.n}" id="parcela-${p.n}">
+      <span class="num">${p.n}</span>
+      <span class="meio"><strong>Parcela ${p.n} de ${p.total}</strong><span>${sub}</span></span>
+      <span class="dir">${direita}</span></button>`;
+  }
+
+  function rolarParaProxima() {
+    if (estado.filtro !== 'todas') return;
+    const ps = parcelasDe(imovelAtual());
+    const prox = ps.find((p) => p.status !== 'paga');
+    const el = prox && document.getElementById(`parcela-${Math.max(1, prox.n - 1)}`);
+    const rol = document.getElementById('rolagem-parcelas');
+    // deixa a última paga visível logo abaixo dos filtros fixos
+    if (el) rol.scrollTo({ top: rol.scrollTop + el.getBoundingClientRect().top - rol.getBoundingClientRect().top - 70 });
+  }
+
+  // ---------------- folha: boleto / pix / detalhe ----------------
+  const folha = document.getElementById('folha');
+  const veu = document.getElementById('veu');
+  const folhaConteudo = document.getElementById('folha-conteudo');
+
+  function abrirFolha(html) {
+    folhaConteudo.innerHTML = html;
+    folha.scrollTop = 0;
+    veu.classList.add('on');
+    folha.classList.add('on');
+  }
+  function fecharFolha() { veu.classList.remove('on'); folha.classList.remove('on'); }
+
+  function linhaDigitavel(p) {
+    const v = String(Math.round((p.atualizado || p.valor) * 100)).padStart(10, '0');
+    return `46191.11000 00000.000${String(p.n).padStart(3, '0')} 15${String(p.n).padStart(3, '0')}.4100${String(p.n % 10)}1 7 ${String(10000 + p.n * 31).slice(0, 4)}${v}`;
+  }
+  function pixPayload(p) {
+    const v = (p.atualizado || p.valor).toFixed(2);
+    return `00020101021226820014br.gov.bcb.pix2560pix.asaas.com/qr/cobv/exemplo-prototipo-parcela-${p.n}520400005303986540${v.length}${v}5802BR5919PLANEJAR ASSESSORIA6006CUIABA62070503***6304A1B2`;
+  }
+
+  function qrSvg(seed) {
+    const n = 29; let s = seed * 9301 + 49297;
+    const rnd = () => ((s = (s * 9301 + 49297) % 233280) / 233280);
+    const finder = (x, y) => (x >= 0 && x < 7 && y >= 0 && y < 7);
+    let rects = '';
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      const naFinder = finder(x, y) || finder(x - (n - 7), y) || finder(x, y - (n - 7));
+      const reservada = (x < 8 && y < 8) || (x > n - 9 && y < 8) || (x < 8 && y > n - 9);
+      if (!reservada && rnd() > 0.52) rects += `<rect x="${x}" y="${y}" width="1" height="1"/>`;
+      if (naFinder) {
+        const fx = x >= n - 7 ? x - (n - 7) : x, fy = y >= n - 7 ? y - (n - 7) : y;
+        const borda = fx === 0 || fx === 6 || fy === 0 || fy === 6;
+        const miolo = fx >= 2 && fx <= 4 && fy >= 2 && fy <= 4;
+        if (borda || miolo) rects += `<rect x="${x}" y="${y}" width="1" height="1"/>`;
+      }
+    }
+    return `<svg class="qr" viewBox="-1 -1 ${n + 2} ${n + 2}" shape-rendering="crispEdges" role="img" aria-label="QR Code Pix de exemplo"><g fill="#000D38">${rects}</g></svg>`;
+  }
+
+  function abrirPagamento(n, aba = 'boleto') {
+    const p = parcelasDe(imovelAtual()).find((x) => x.n === Number(n));
+    if (!p) return;
+    const valor = p.atualizado || p.valor;
+    const cab = `
+      <h3>Parcela ${p.n} de ${p.total}</h3>
+      <p class="desc">${p.status === 'vencida' ? `Venceu em ${data(p.venc)}` : `Vence em ${data(p.venc)}`} · ${esc(imovelAtual().identificacao)}</p>
+      <div class="seg" role="group" aria-label="Forma de pagamento">
+        <button data-trocar-aba="boleto" data-n="${p.n}" aria-pressed="${aba === 'boleto'}">${icone('barras')} Boleto</button>
+        <button data-trocar-aba="pix" data-n="${p.n}" aria-pressed="${aba === 'pix'}">${icone('qr')} Pix</button>
+      </div>
+      <div class="valor-box"><div><small>${p.status === 'vencida' ? 'Valor atualizado' : 'Valor'}</small><b>${moeda(valor)}</b></div>
+        ${p.status === 'vencida' ? `<div style="text-align:right"><small>Original</small><s>${moeda(p.valor)}</s></div>` : `<span class="pill em_aberto">Em aberto</span>`}</div>`;
+    const corpo = aba === 'boleto'
+      ? `<div class="codigo" id="codigo-copiar">${linhaDigitavel(p)}</div>
+         <div class="pilha">
+           <button class="btn btn-navy btn-largo" data-copiar="codigo-copiar" data-msg="Código de barras copiado">${icone('copiar')} Copiar código de barras</button>
+           <button class="btn btn-claro btn-largo" data-toast="No app, abre o PDF do boleto (Asaas)">${icone('baixar')} Abrir boleto em PDF</button>
+         </div>
+         <p class="exemplo">Código de exemplo · não pague</p>`
+      : `${qrSvg(p.n + 7)}
+         <p class="exemplo">QR Code de exemplo · não pague</p>
+         <div class="codigo" id="codigo-copiar" style="font-size:13px">${pixPayload(p)}</div>
+         <div class="pilha">
+           <button class="btn btn-ciano btn-largo" data-copiar="codigo-copiar" data-msg="Pix copia e cola copiado">${icone('copiar')} Copiar Pix copia e cola</button>
+         </div>
+         <p style="color:var(--suave);font-size:15px;text-align:center;margin:12px 0 0">Abra o app do seu banco, escolha Pix copia e cola e cole o código. A confirmação chega aqui em instantes.</p>`;
+    abrirFolha(cab + corpo);
+  }
+
+  function abrirDetalhe(n) {
+    const p = parcelasDe(imovelAtual()).find((x) => x.n === Number(n));
+    if (!p) return;
+    if (p.status !== 'paga') return abrirPagamento(n, 'boleto');
+    abrirFolha(`
+      <h3>Parcela ${p.n} de ${p.total}</h3>
+      <p class="desc">${esc(imovelAtual().identificacao)}</p>
+      <ul class="info-lista">
+        <li><span>Situação</span><b><span class="pill paga">Paga</span></b></li>
+        <li><span>Vencimento</span><b>${data(p.venc)}</b></li>
+        <li><span>Pago em</span><b>${data(p.pagoEm)}</b></li>
+        <li><span>Valor pago</span><b>${moeda(p.valor)}</b></li>
+        <li><span>Forma</span><b>${p.n % 3 ? 'Pix' : 'Boleto'}</b></li>
+      </ul>
+      <div class="pilha"><button class="btn btn-navy btn-largo" data-toast="Abre o comprovante do Asaas">${icone('recibo')} Ver comprovante</button></div>`);
+  }
+
+  function abrirTrocarSenha() {
+    abrirFolha(`
+      <h3>Trocar senha</h3>
+      <p class="desc">Use pelo menos 8 caracteres.</p>
+      <div style="display:grid;gap:12px;margin-top:16px">
+        ${['Senha atual', 'Nova senha', 'Repita a nova senha'].map((l) => `<label style="display:block"><span style="display:block;font-weight:600;margin-bottom:6px">${l}</span><input type="password" id="senha-${l.length}" style="width:100%;height:52px;border-radius:14px;border:1.5px solid var(--linha);padding:0 14px;font-size:17px;background:#fff;color:var(--texto);color-scheme:light"></label>`).join('')}
+      </div>
+      <div class="pilha"><button class="btn btn-navy btn-largo" data-fechar-folha data-toast="Senha alterada">Salvar nova senha</button></div>`);
+  }
+
+  // ---------------- ondas da marca ----------------
+  function desenharOndas() {
+    document.querySelectorAll('svg[data-ondas]').forEach((svg) => {
+      if (svg.dataset.ok) return;
+      const tipo = svg.dataset.ondas;
+      const w = 400, h = tipo === 'login' ? 900 : 260;
+      svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+      svg.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+      let paths = '';
+      const qtd = tipo === 'card' ? 16 : 26;
+      for (let i = 0; i < qtd; i++) {
+        const t = i / qtd;
+        if (tipo === 'login') {
+          paths += `<path d="M${440} ${-20 + i * 6} C ${300 - i * 4} ${180 + i * 3}, ${120 + i * 6} ${260 + i * 9}, ${-40} ${520 + i * 7}" stroke="${i % 6 === 0 ? '#0AC1FA' : '#4A5CFF'}" stroke-opacity="${i % 6 === 0 ? 0.35 : 0.22}"/>`;
+          paths += `<path d="M${440} ${560 + i * 5} C ${300} ${520 + i * 9}, ${160} ${640 + i * 4}, ${-40} ${600 + i * 10}" stroke="#4A5CFF" stroke-opacity="${0.12 + t * 0.12}"/>`;
+        } else {
+          paths += `<path d="M${430} ${-10 + i * 5} C ${320 - i * 3} ${60 + i * 4}, ${200 + i * 2} ${130 + i * 5}, ${-30} ${150 + i * 6}" stroke="${i % 7 === 0 ? '#0AC1FA' : '#4A5CFF'}" stroke-opacity="${tipo === 'card' ? 0.14 : 0.2}"/>`;
+        }
+      }
+      svg.innerHTML = `<g fill="none" stroke-width=".8">${paths}</g>`;
+      svg.dataset.ok = '1';
+    });
+  }
+
+  // ---------------- utilidades ----------------
+  let toastTimer;
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.querySelector('span').textContent = msg;
+    t.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('on'), 2200);
+  }
+
+  function copiar(el, msg) {
+    navigator.clipboard.writeText(el.textContent.trim()).then(() => toast(msg), () => {
+      // sem permissão de área de transferência: seleciona o texto para copiar à mão
+      const r = document.createRange(); r.selectNodeContents(el);
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      toast('Código selecionado. Copie com o botão do celular');
+    });
+  }
+
+  function linkWhats() {
+    const im = imovelAtual();
+    const msg = `Olá! Sou ${COMPRADOR.nome} (CPF ${COMPRADOR.cpf}), comprador(a) do ${im.identificacao} no ${im.empreendimento}. Vim pelo app e preciso de ajuda.`;
+    return `https://wa.me/${WHATS}?text=${encodeURIComponent(msg)}`;
+  }
+
+  function passo(n) {
+    document.querySelectorAll('[data-passo]').forEach((el) => (el.hidden = el.dataset.passo !== String(n)));
+    document.querySelectorAll('[data-passo-barra]').forEach((el) => el.classList.toggle('on', Number(el.dataset.passoBarra) <= n));
+    if (n === 2) setTimeout(() => document.querySelector('#codigo-caixas input')?.focus(), 50);
+  }
+
+  function mascaraCpf(v) {
+    const d = v.replace(/\D/g, '').slice(0, 11);
+    return d.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  }
+
+  // ---------------- eventos ----------------
+  document.addEventListener('click', (e) => {
+    const alvo = e.target.closest('button, a, [data-ir]');
+    if (!alvo) return;
+
+    if (alvo.matches('a[href="#"]')) e.preventDefault();
+    if (alvo.dataset.fechaDialogo !== undefined) document.querySelectorAll('.dialogo').forEach((d) => d.classList.remove('on'));
+    if (alvo.dataset.fecharFolha !== undefined) fecharFolha();
+    if (alvo.dataset.toast) toast(alvo.dataset.toast);
+    if (alvo.dataset.voltar !== undefined) return voltar();
+    if (alvo.dataset.filtroIr) estado.filtro = alvo.dataset.filtroIr;
+    if (alvo.dataset.modo !== undefined) {
+      document.getElementById('pa-titulo').innerHTML = alvo.dataset.modo === 'esqueci' ? 'Recuperar <span>senha</span>' : 'Primeiro <span>acesso</span>';
+      document.querySelector('[data-so-primeiro]').hidden = alvo.dataset.modo === 'esqueci';
+    } else if (alvo.dataset.ir === 'primeiro-acesso') {
+      document.getElementById('pa-titulo').innerHTML = 'Primeiro <span>acesso</span>';
+      document.querySelector('[data-so-primeiro]').hidden = false;
+    }
+    if (alvo.dataset.ir) return ir(alvo.dataset.ir);
+    if (alvo.dataset.passoIr) return passo(Number(alvo.dataset.passoIr));
+    if (alvo.dataset.imovel) { estado.imovel = alvo.dataset.imovel; return render(); }
+    if (alvo.dataset.filtro) { estado.filtro = alvo.dataset.filtro; render(); document.getElementById('rolagem-parcelas').scrollTo({ top: 0 }); return; }
+    if (alvo.dataset.pagar) return abrirPagamento(alvo.dataset.pagar, alvo.dataset.aba);
+    if (alvo.dataset.trocarAba) return abrirPagamento(alvo.dataset.n, alvo.dataset.trocarAba);
+    if (alvo.dataset.detalhe) return abrirDetalhe(alvo.dataset.detalhe);
+    if (alvo.dataset.copiar) return copiar(document.getElementById(alvo.dataset.copiar), alvo.dataset.msg);
+    if (alvo.dataset.folha === 'senha') return abrirTrocarSenha();
+    if (alvo.dataset.dialogo) return document.getElementById(`dialogo-${alvo.dataset.dialogo}`).classList.add('on');
+    if (alvo.dataset.notif) {
+      estado.lidas.add(alvo.dataset.notif);
+      const tipo = alvo.dataset.tipo;
+      if (tipo === 'vencimento') { const p = parcelasDe(imovelAtual()).find((x) => x.status !== 'paga'); if (p) { ir('inicio'); abrirPagamento(p.n, 'pix'); } return; }
+      if (tipo === 'pagamento') { estado.filtro = 'paga'; return ir('parcelas'); }
+      return render();
+    }
+    if (alvo.dataset.abrirPagamento !== undefined) {
+      const p = parcelasDe(imovelAtual()).find((x) => x.status !== 'paga');
+      ir('inicio');
+      if (p) abrirPagamento(p.n, 'boleto');
+      document.querySelectorAll('#proto-telas button').forEach((b) => b.setAttribute('aria-current', String(b === alvo)));
+    }
+  });
+
+  document.getElementById('marcar-lidas').addEventListener('click', () => { ['v', 'p'].forEach((id) => estado.lidas.add(id)); render(); toast('Tudo marcado como lido'); });
+  veu.addEventListener('click', fecharFolha);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { fecharFolha(); document.querySelectorAll('.dialogo').forEach((d) => d.classList.remove('on')); } });
+
+  document.querySelectorAll('[data-mascara="cpf"]').forEach((inp) => inp.addEventListener('input', () => (inp.value = mascaraCpf(inp.value))));
+
+  const caixas = [...document.querySelectorAll('#codigo-caixas input')];
+  caixas.forEach((c, i) => {
+    c.addEventListener('input', () => { c.value = c.value.replace(/\D/g, '').slice(-1); if (c.value && caixas[i + 1]) caixas[i + 1].focus(); });
+    c.addEventListener('keydown', (e) => { if (e.key === 'Backspace' && !c.value && caixas[i - 1]) caixas[i - 1].focus(); });
+    c.addEventListener('paste', (e) => {
+      const d = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 6);
+      if (!d) return; e.preventDefault(); d.split('').forEach((x, j) => caixas[j] && (caixas[j].value = x)); caixas[Math.min(d.length, 5)].focus();
+    });
+  });
+
+  document.getElementById('slides').addEventListener('scroll', (e) => {
+    const el = e.currentTarget; const i = Math.round(el.scrollLeft / el.clientWidth);
+    document.querySelectorAll('#pontos i').forEach((p, j) => p.classList.toggle('on', j === i));
+    document.getElementById('contador-foto').textContent = `${i + 1} / ${el.children.length}`;
+  }, { passive: true });
+
+  document.getElementById('sim-vencida').addEventListener('change', (e) => { estado.vencida = e.target.checked; estado.imovel = 'a'; render(); if (estado.tela === 'login' || estado.tela === 'primeiro-acesso') ir('inicio'); });
+  document.getElementById('sim-dois').addEventListener('change', (e) => { estado.dois = e.target.checked; if (!estado.dois) estado.imovel = 'a'; render(); if (estado.tela !== 'inicio') ir('inicio'); });
+
+  document.getElementById('proto-abrir').addEventListener('click', () => document.getElementById('proto').classList.add('aberto'));
+  document.getElementById('proto-fechar').addEventListener('click', () => document.getElementById('proto').classList.remove('aberto'));
+
+  // links diretos para uma tela ou situação.
+  // Publicado: #inicio, #parcelas, #imovel, #documentos, #notificacoes, #perfil, #vencida, #boleto, #pix
+  // Local também aceita: ?tela=inicio&vencida=1&dois=1&pagar=pix
+  const params = new URLSearchParams(location.search);
+  const ancora = location.hash.slice(1);
+  if (telas.some((t) => t.dataset.tela === ancora)) params.set('tela', ancora);
+  if (ancora === 'vencida') { params.set('tela', 'inicio'); params.set('vencida', '1'); }
+  if (ancora === 'boleto' || ancora === 'pix') { params.set('tela', 'inicio'); params.set('pagar', ancora); }
+  estado.vencida = document.getElementById('sim-vencida').checked = params.get('vencida') === '1';
+  estado.dois = document.getElementById('sim-dois').checked = params.get('dois') === '1';
+  ir(params.get('tela') || 'login');
+  if (params.get('pagar')) {
+    const p = parcelasDe(imovelAtual()).find((x) => x.status !== 'paga');
+    if (p) abrirPagamento(p.n, params.get('pagar'));
+  }
+})();
+</script>
