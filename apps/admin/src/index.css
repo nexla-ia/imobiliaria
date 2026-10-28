@@ -10,8 +10,11 @@
   --color-marinho: #0a1f5c;
   --color-ciano: #0ac1fa;
   --color-ciano-escuro: #0078a8;
-  --color-fundo: #f2f5fa;
-  --color-linha: #dfe5f0;
+  --color-fundo: #e8edf5;
+  --color-linha: #d3dbe8;
+  /* cabeçalho de tabela e áreas internas dos cartões */
+  --color-fundo-suave: #f5f7fb;
+  --shadow-cartao: 0 1px 2px rgb(0 13 56 / 0.06), 0 4px 14px rgb(0 13 56 / 0.06);
   --color-texto: #0b1433;
   --color-suave: #4a5578;
   --color-ok: #0e8a4f;

@@ -182,7 +182,7 @@ export function Carteira() {
 
 function Indicador({ rotulo, valor, detalhe, tom }: { rotulo: string; valor: string; detalhe: string; tom?: 'erro' | 'ok' }) {
   return (
-    <div className="rounded-xl border border-linha bg-white p-4">
+    <div className="rounded-xl border border-linha bg-white p-4 shadow-cartao">
       <p className="text-xs font-semibold tracking-wide text-suave uppercase">{rotulo}</p>
       <p className={`mt-1 text-2xl font-bold tabular-nums ${tom === 'erro' ? 'text-erro' : 'text-noite'}`}>{valor}</p>
       <p className="mt-0.5 text-xs text-suave">{detalhe}</p>

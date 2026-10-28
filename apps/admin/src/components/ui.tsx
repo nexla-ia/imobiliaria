@@ -128,7 +128,7 @@ export function Cartao({ children, className, titulo, acoes }: {
   acoes?: ReactNode;
 }) {
   return (
-    <section className={cx('rounded-xl border border-linha bg-white', className)}>
+    <section className={cx('rounded-xl border border-linha bg-white shadow-cartao', className)}>
       {(titulo || acoes) && (
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-linha px-5 py-3.5">
           {titulo && <h2 className="text-base font-bold">{titulo}</h2>}
@@ -194,7 +194,7 @@ export function MensagemErro({ erro }: { erro: string | null | undefined }) {
 export function Tabela({ children }: { children: ReactNode }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm [&_td]:px-4 [&_td]:py-3 [&_th]:px-4 [&_th]:py-2.5 [&_th]:text-xs [&_th]:font-semibold [&_th]:tracking-wide [&_th]:text-suave [&_th]:uppercase [&_thead]:border-b [&_thead]:border-linha [&_tbody_tr]:border-b [&_tbody_tr]:border-linha/70 [&_tbody_tr:last-child]:border-0">
+      <table className="w-full text-left text-sm [&_td]:px-4 [&_td]:py-3 [&_th]:px-4 [&_th]:py-2.5 [&_th]:text-xs [&_th]:font-semibold [&_th]:tracking-wide [&_th]:text-suave [&_th]:uppercase [&_thead]:border-b [&_thead]:border-linha [&_thead]:bg-fundo-suave [&_tbody_tr]:border-b [&_tbody_tr]:border-linha/70 [&_tbody_tr:last-child]:border-0">
         {children}
       </table>
     </div>
