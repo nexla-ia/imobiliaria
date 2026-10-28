@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router';
 import { ModalConvite } from '../components/Convite';
 import { SeloAcesso } from '../components/selos';
 import { Botao, CabecalhoPagina, Cartao, Carregando, Entrada, MensagemErro, Modal, Selecao, Tabela, Vazio } from '../components/ui';
-import { chamar, exigir, mensagemDeErro } from '../lib/api';
+import { buscarTodos, chamar, mensagemDeErro } from '../lib/api';
 import { useEquipe } from '../lib/sessao';
 import { supabase } from '../lib/supabase';
 
@@ -22,12 +22,9 @@ export function Compradores() {
   const consulta = useQuery({
     queryKey: ['compradores'],
     queryFn: async () =>
-      exigir(
-        await supabase
-          .from('compradores')
-          .select('*, contratos(id, status, imoveis(identificacao))')
-          .order('nome'),
-      ) as CompradorLista[],
+      buscarTodos<CompradorLista>((de, ate) =>
+        supabase.from('compradores').select('*, contratos(id, status, imoveis(identificacao))').order('nome').order('id').range(de, ate),
+      ),
   });
 
   const lista = useMemo(() => {
@@ -123,37 +120,47 @@ function ModalImportarTodos({ aoFechar }: { aoFechar: () => void }) {
   const [etapa, setEtapa] = useState<'confirmar' | 'importando' | 'sincronizando' | 'pronto'>('confirmar');
   const [resultado, setResultado] = useState<ImportarClientesRes | null>(null);
   const [pendentes, setPendentes] = useState(0);
+  const [falhas, setFalhas] = useState(0);
   const [erro, setErro] = useState<string | null>(null);
 
   async function importar() {
     setErro(null);
     setEtapa('importando');
+    let r: ImportarClientesRes | null = null;
     try {
-      const r = await chamar<ImportarClientesRes>('asaas-importar-clientes');
+      r = await chamar<ImportarClientesRes>('asaas-importar-clientes');
       setResultado(r);
-      let faltam = r.pendentes_sync;
-      setPendentes(faltam);
-      if (faltam > 0) {
+      setPendentes(r.pendentes_sync);
+      if (r.pendentes_sync > 0) {
         setEtapa('sincronizando');
-        // cada chamada sincroniza ~110 s de compradores; para quando não avança mais
-        while (faltam > 0) {
+        // cada chamada sincroniza ~110 s de compradores (até 500); repete até não sobrar ninguém
+        let erros = 0;
+        for (;;) {
           const s = await chamar<SyncRes>('asaas-sync', { pendentes: true });
-          if (s.compradores === 0) break;
-          faltam = s.pendentes;
-          setPendentes(faltam);
+          erros += s.erros.length;
+          setFalhas(erros);
+          setPendentes(s.pendentes);
+          if (s.compradores === 0 || (s.pendentes === 0 && s.compradores < 500)) break;
         }
+        setPendentes(0);
       }
       setEtapa('pronto');
     } catch (e) {
       setErro(mensagemDeErro(e));
-      setEtapa(resultado ? 'pronto' : 'confirmar');
+      setEtapa(r ? 'pronto' : 'confirmar');
     } finally {
       await queryClient.invalidateQueries();
     }
   }
 
   return (
-    <Modal aberto aoFechar={etapa === 'importando' || etapa === 'sincronizando' ? () => {} : aoFechar} titulo="Importar clientes do Asaas" largura="max-w-xl">
+    <Modal
+      aberto
+      aoFechar={aoFechar}
+      bloqueado={etapa === 'importando' || etapa === 'sincronizando'}
+      titulo="Importar clientes do Asaas"
+      largura="max-w-xl"
+    >
       {etapa === 'confirmar' && (
         <div className="space-y-4 text-sm text-suave">
           <p>
@@ -189,9 +196,10 @@ function ModalImportarTodos({ aoFechar }: { aoFechar: () => void }) {
             {resultado.ignorados.cnpj_ou_cpf_invalido > 0 && <Linha rotulo="Ignorados (CNPJ ou CPF inválido)" valor={resultado.ignorados.cnpj_ou_cpf_invalido} />}
             {resultado.ignorados.cpf_repetido_no_asaas > 0 && <Linha rotulo="CPF cadastrado duas vezes no Asaas" valor={resultado.ignorados.cpf_repetido_no_asaas} />}
           </ul>
-          {pendentes > 0 && (
+          {(pendentes > 0 || falhas > 0) && (
             <p className="rounded-lg bg-alerta-bg px-3 py-2 text-alerta">
-              {pendentes} comprador(es) ainda sem parcelas sincronizadas. A sincronização da madrugada completa.
+              {falhas > 0 ? `${falhas} comprador(es) não sincronizaram por erro no Asaas. ` : ''}
+              {pendentes > 0 ? `${pendentes} comprador(es) ainda sem parcelas. ` : ''}A sincronização da madrugada tenta de novo.
             </p>
           )}
           <MensagemErro erro={erro} />

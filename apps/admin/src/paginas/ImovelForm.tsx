@@ -18,6 +18,14 @@ interface Formulario {
 
 const vazio: Formulario = { empreendimento_id: '', identificacao: '', endereco: '', coordenadas: '', metragem_m2: '', descricao: '' };
 
+/** "1.250,5" → 1250.5; "360,5" e "360.5" → 360.5; "1.250" → 1250. */
+function lerNumeroBr(texto: string): number {
+  const t = texto.trim().replace(/\s/g, '');
+  if (t.includes(',')) return Number(t.replace(/\./g, '').replace(',', '.'));
+  if (/^\d{1,3}(\.\d{3})+$/.test(t)) return Number(t.replace(/\./g, ''));
+  return Number(t);
+}
+
 /** Aceita "-15.556, -56.073" (como o Google Maps copia) ou "-15,556 -56,073". */
 function lerCoordenadas(texto: string): { lat: number; lng: number } | null | 'invalido' {
   const t = texto.trim();
@@ -79,7 +87,7 @@ function FormularioImovel({ id, imovel }: { id: string; imovel: (Imovel & { cont
     e.preventDefault();
     const coords = lerCoordenadas(form.coordenadas);
     if (coords === 'invalido') return setErro('Coordenadas inválidas. Copie do Google Maps no formato "-15.5561, -56.0735".');
-    const metragem = form.metragem_m2.trim() ? Number(form.metragem_m2.replace(/\./g, '').replace(',', '.')) : null;
+    const metragem = form.metragem_m2.trim() ? lerNumeroBr(form.metragem_m2) : null;
     if (metragem != null && (Number.isNaN(metragem) || metragem <= 0)) return setErro('Metragem inválida.');
     setErro(null);
     setSalvando(true);
@@ -103,8 +111,7 @@ function FormularioImovel({ id, imovel }: { id: string; imovel: (Imovel & { cont
       } else {
         exigir(await supabase.from('imoveis').update(campos).eq('id', id));
         avisar('Imóvel atualizado.');
-        await queryClient.invalidateQueries({ queryKey: ['imoveis'] });
-        await queryClient.invalidateQueries({ queryKey: ['imovel', id] });
+        await queryClient.invalidateQueries();
       }
     } catch (e) {
       setErro(mensagemDeErro(e));
@@ -119,7 +126,7 @@ function FormularioImovel({ id, imovel }: { id: string; imovel: (Imovel & { cont
       exigir(await supabase.from('imoveis').delete().eq('id', id));
       if (fotos?.length) await supabase.storage.from('imoveis').remove(fotos.map((f) => f.storage_path));
       avisar('Imóvel excluído.');
-      await queryClient.invalidateQueries({ queryKey: ['imoveis'] });
+      await queryClient.invalidateQueries();
       navegar('/imoveis', { replace: true });
     } catch (e) {
       avisar(mensagemDeErro(e), 'erro');
@@ -212,6 +219,7 @@ function Fotos({ imovelId }: { imovelId: string }) {
   const queryClient = useQueryClient();
   const avisar = useAvisar();
   const [enviando, setEnviando] = useState(false);
+  const [removerFoto, setRemoverFoto] = useState<ImovelFoto | null>(null);
 
   const fotos = useQuery({
     queryKey: ['imovel', imovelId, 'fotos'],
@@ -237,7 +245,11 @@ function Fotos({ imovelId }: { imovelId: string }) {
         const ext = arquivo.name.split('.').pop()?.toLowerCase() || 'jpg';
         const caminho = `${empresa.id}/${imovelId}/${crypto.randomUUID()}.${ext}`;
         exigir(await supabase.storage.from('imoveis').upload(caminho, arquivo, { contentType: arquivo.type }));
-        exigir(await supabase.from('imovel_fotos').insert({ empresa_id: empresa.id, imovel_id: imovelId, storage_path: caminho, ordem: ordem++ }));
+        const { error: erroFoto } = await supabase.from('imovel_fotos').insert({ empresa_id: empresa.id, imovel_id: imovelId, storage_path: caminho, ordem: ordem++ });
+        if (erroFoto) {
+          await supabase.storage.from('imoveis').remove([caminho]); // não deixa a foto sem cadastro
+          throw erroFoto;
+        }
       }
       avisar('Fotos enviadas.');
     } catch (e) {
@@ -253,14 +265,25 @@ function Fotos({ imovelId }: { imovelId: string }) {
     const a = lista[indice];
     const b = lista[indice + direcao];
     if (!a || !b) return;
-    await supabase.from('imovel_fotos').update({ ordem: b.ordem }).eq('id', a.id);
-    await supabase.from('imovel_fotos').update({ ordem: a.ordem }).eq('id', b.id);
+    try {
+      exigir(await supabase.from('imovel_fotos').update({ ordem: b.ordem }).eq('id', a.id));
+      exigir(await supabase.from('imovel_fotos').update({ ordem: a.ordem }).eq('id', b.id));
+    } catch (e) {
+      avisar(mensagemDeErro(e), 'erro');
+    }
     await queryClient.invalidateQueries({ queryKey: ['imovel', imovelId, 'fotos'] });
   }
 
-  async function remover(f: ImovelFoto) {
-    await supabase.from('imovel_fotos').delete().eq('id', f.id);
-    await supabase.storage.from('imoveis').remove([f.storage_path]);
+  async function confirmarRemocaoFoto() {
+    if (!removerFoto) return;
+    try {
+      exigir(await supabase.from('imovel_fotos').delete().eq('id', removerFoto.id));
+      await supabase.storage.from('imoveis').remove([removerFoto.storage_path]);
+      avisar('Foto removida.');
+    } catch (e) {
+      avisar(mensagemDeErro(e), 'erro');
+    }
+    setRemoverFoto(null);
     await queryClient.invalidateQueries({ queryKey: ['imovel', imovelId, 'fotos'] });
   }
 
@@ -270,7 +293,18 @@ function Fotos({ imovelId }: { imovelId: string }) {
       acoes={
         <label className="inline-flex h-8 cursor-pointer items-center rounded-lg bg-noite px-3 text-sm font-semibold text-white hover:bg-marinho">
           {enviando ? 'Enviando…' : 'Adicionar fotos'}
-          <input id="fotos-imovel" type="file" accept="image/*" multiple className="sr-only" disabled={enviando} onChange={(e) => enviar(e.target.files)} />
+          <input
+            id="fotos-imovel"
+            type="file"
+            accept="image/*"
+            multiple
+            className="sr-only"
+            disabled={enviando}
+            onChange={(e) => {
+              void enviar(e.target.files);
+              e.target.value = ''; // permite escolher o mesmo arquivo de novo
+            }}
+          />
         </label>
       }
     >
@@ -289,12 +323,21 @@ function Fotos({ imovelId }: { imovelId: string }) {
                   <button disabled={i === 0} onClick={() => mover(i, -1)} className="rounded px-2 py-1 hover:bg-fundo disabled:opacity-30" aria-label="Mover para antes">←</button>
                   <button disabled={i === fotos.data.length - 1} onClick={() => mover(i, 1)} className="rounded px-2 py-1 hover:bg-fundo disabled:opacity-30" aria-label="Mover para depois">→</button>
                 </span>
-                <button onClick={() => remover(f)} className="rounded px-2 py-1 text-erro hover:bg-erro-bg">Remover</button>
+                <button onClick={() => setRemoverFoto(f)} className="rounded px-2 py-1 text-erro hover:bg-erro-bg">Remover</button>
               </div>
             </li>
           ))}
         </ul>
       )}
+      <Confirmar
+        aberto={!!removerFoto}
+        aoFechar={() => setRemoverFoto(null)}
+        aoConfirmar={confirmarRemocaoFoto}
+        titulo="Remover esta foto?"
+        texto="Ela deixa de aparecer em Meu imóvel, no app."
+        rotulo="Remover"
+        perigo
+      />
     </Cartao>
   );
 }

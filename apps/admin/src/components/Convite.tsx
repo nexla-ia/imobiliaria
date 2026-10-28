@@ -23,9 +23,7 @@ export function ModalConvite({ comprador, aoFechar }: { comprador: CompradorConv
     setErro(null);
     try {
       setResultado(await chamar<ConvidarRes>('acesso-convidar', { comprador_id: comprador.id }));
-      await queryClient.invalidateQueries({ queryKey: ['comprador', comprador.id] });
-      await queryClient.invalidateQueries({ queryKey: ['compradores'] });
-      await queryClient.invalidateQueries({ queryKey: ['carteira'] });
+      await queryClient.invalidateQueries();
     } catch (e) {
       setErro(mensagemDeErro(e));
     } finally {

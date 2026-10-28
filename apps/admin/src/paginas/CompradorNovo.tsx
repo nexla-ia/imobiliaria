@@ -83,18 +83,22 @@ export function CompradorNovo() {
     setSalvando(true);
     try {
       let compradorId = resultado.comprador_id;
-      const campos = { nome: dados.nome.trim(), telefone, email: dados.email.trim() || null, asaas_customer_id: cliente.id };
+      const campos = { nome: dados.nome.trim(), telefone, email: dados.email.trim() || null };
       if (compradorId) {
+        // o cliente do Asaas só é preenchido se ainda não houver: trocar esconderia as avulsas do outro cadastro
         exigir(await supabase.from('compradores').update(campos).eq('id', compradorId));
+        exigir(await supabase.from('compradores').update({ asaas_customer_id: cliente.id }).eq('id', compradorId).is('asaas_customer_id', null));
       } else {
         const novo = exigir(
           await supabase
             .from('compradores')
-            .insert({ ...campos, empresa_id: empresa.id, cpf: somenteDigitos(cpf) })
+            .insert({ ...campos, asaas_customer_id: cliente.id, empresa_id: empresa.id, cpf: somenteDigitos(cpf) })
             .select('id')
             .single(),
         ) as { id: string };
         compradorId = novo.id;
+        // se o vínculo abaixo falhar, tentar de novo atualiza este comprador em vez de duplicar
+        setResultado({ ...resultado, comprador_id: novo.id });
       }
 
       if (escolhidos.length) {

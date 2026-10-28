@@ -10,6 +10,9 @@ interface Sessao {
   empresa: Empresa | null;
   /** login válido mas sem cadastro na equipe */
   semAcesso: boolean;
+  /** não deu para carregar o perfil (rede/servidor): mostrar "tentar de novo", não "sem acesso" */
+  erroPerfil: boolean;
+  recarregarPerfil: () => Promise<void>;
   recarregarEmpresa: () => Promise<void>;
   sair: () => Promise<void>;
 }
@@ -22,6 +25,7 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
   const [empresa, setEmpresa] = useState<Empresa | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [semAcesso, setSemAcesso] = useState(false);
+  const [erroPerfil, setErroPerfil] = useState(false);
 
   async function carregarPerfil(s: Session | null) {
     setSession(s);
@@ -32,16 +36,22 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
       setCarregando(false);
       return;
     }
-    const { data: m } = await supabase.from('usuarios_admin').select('*').eq('auth_user_id', s.user.id).maybeSingle();
-    if (!m) {
+    const { data: m, error: erroM } = await supabase.from('usuarios_admin').select('*').eq('auth_user_id', s.user.id).maybeSingle();
+    if (erroM) {
+      setErroPerfil(true);
+    } else if (!m) {
+      setErroPerfil(false);
       setSemAcesso(true);
       setMembro(null);
       setEmpresa(null);
     } else {
-      const { data: e } = await supabase.from('empresas').select('*').eq('id', m.empresa_id).single();
-      setMembro(m as UsuarioAdmin);
-      setEmpresa(e as Empresa);
-      setSemAcesso(false);
+      const { data: e, error: erroE } = await supabase.from('empresas').select('*').eq('id', m.empresa_id).single();
+      setErroPerfil(!!erroE);
+      if (!erroE) {
+        setMembro(m as UsuarioAdmin);
+        setEmpresa(e as Empresa);
+        setSemAcesso(false);
+      }
     }
     setCarregando(false);
   }
@@ -49,11 +59,11 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => carregarPerfil(data.session));
     const { data } = supabase.auth.onAuthStateChange((evento, s) => {
-      // TOKEN_REFRESHED não muda quem está logado
+      // a sessão nova vale na hora (ex.: trocar_senha já desligado depois de USER_UPDATED);
+      // o perfil é recarregado fora do callback, como pede o supabase-js
+      setSession(s);
       if (evento === 'SIGNED_IN' || evento === 'SIGNED_OUT' || evento === 'USER_UPDATED') {
         setTimeout(() => carregarPerfil(s), 0);
-      } else {
-        setSession(s);
       }
     });
     return () => data.subscription.unsubscribe();
@@ -65,6 +75,11 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
     membro,
     empresa,
     semAcesso,
+    erroPerfil,
+    recarregarPerfil: async () => {
+      const { data } = await supabase.auth.getSession();
+      await carregarPerfil(data.session);
+    },
     recarregarEmpresa: async () => {
       if (!membro) return;
       const { data } = await supabase.from('empresas').select('*').eq('id', membro.empresa_id).single();

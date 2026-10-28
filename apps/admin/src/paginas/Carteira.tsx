@@ -1,19 +1,14 @@
-import { formatarCpf, formatarData, formatarMoeda, type Empreendimento, type LinhaCarteira } from '@planejar/shared';
+import { formatarCpf, formatarData, formatarMoeda, formatarTelefone, type Empreendimento, type LinhaCarteira } from '@planejar/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { SeloAcesso } from '../components/selos';
 import { BarraProgresso, Botao, CabecalhoPagina, Cartao, Carregando, Entrada, MensagemErro, Selecao, Selo, Tabela, Vazio } from '../components/ui';
-import { exigir, mensagemDeErro } from '../lib/api';
+import { buscarTodos, exigir, mensagemDeErro } from '../lib/api';
 import { baixarCsv } from '../lib/csv';
 import { supabase } from '../lib/supabase';
 
 type Situacao = 'todos' | 'em_dia' | 'atraso' | 'quitado';
-
-function inicioDoMes(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
-}
 
 export function Carteira() {
   const navegar = useNavigate();
@@ -23,8 +18,10 @@ export function Carteira() {
 
   const carteira = useQuery({
     queryKey: ['carteira'],
-    queryFn: async () =>
-      exigir(await supabase.from('vw_carteira').select('*').neq('status_contrato', 'cancelado').order('comprador_nome')) as LinhaCarteira[],
+    queryFn: () =>
+      buscarTodos<LinhaCarteira>((de, ate) =>
+        supabase.from('vw_carteira').select('*').neq('status_contrato', 'cancelado').order('comprador_nome').order('contrato_id').range(de, ate),
+      ),
   });
   const empreendimentos = useQuery({
     queryKey: ['empreendimentos'],
@@ -32,16 +29,8 @@ export function Carteira() {
   });
   const recebidoMes = useQuery({
     queryKey: ['recebido-mes'],
-    queryFn: async () => {
-      const linhas = exigir(
-        await supabase
-          .from('cobrancas')
-          .select('valor, valor_original, contrato_id')
-          .eq('status_app', 'paga')
-          .gte('data_pagamento', inicioDoMes()),
-      ) as Array<{ valor: number; valor_original: number | null }>;
-      return linhas.reduce((s, l) => s + Number(l.valor_original ?? l.valor), 0);
-    },
+    // somado no banco (valor pago de fato, no fuso da empresa, sem o corte de 1000 linhas)
+    queryFn: async () => Number(exigir(await supabase.rpc('recebido_no_mes'))),
   });
 
   const linhas = useMemo(() => {
@@ -52,7 +41,7 @@ export function Carteira() {
       if (situacao === 'em_dia' && (l.parcelas_vencidas > 0 || l.status_contrato === 'quitado')) return false;
       if (situacao === 'atraso' && l.parcelas_vencidas === 0) return false;
       if (situacao === 'quitado' && l.status_contrato !== 'quitado') return false;
-      if (termo && !l.comprador_nome.toLowerCase().includes(termo) && !(digitos && l.comprador_cpf.includes(digitos)) && !l.imovel.toLowerCase().includes(termo)) {
+      if (termo && !l.comprador_nome.toLowerCase().includes(termo) && !(digitos.length >= 3 && l.comprador_cpf.includes(digitos)) && !l.imovel.toLowerCase().includes(termo)) {
         return false;
       }
       return true;
@@ -62,7 +51,7 @@ export function Carteira() {
   const ativos = (carteira.data ?? []).filter((l) => l.status_contrato === 'ativo');
   const emAtraso = ativos.filter((l) => l.parcelas_vencidas > 0);
   const valorVencido = ativos.reduce((s, l) => s + Number(l.valor_vencido), 0);
-  const appAtivo = new Set((carteira.data ?? []).filter((l) => l.status_acesso === 'ativo').map((l) => l.comprador_id)).size;
+  const appAtivo = new Set((carteira.data ?? []).filter((l) => l.status_acesso === 'ativo' && !l.deve_trocar_senha).map((l) => l.comprador_id)).size;
   const compradores = new Set((carteira.data ?? []).map((l) => l.comprador_id)).size;
 
   function exportar() {
@@ -72,7 +61,7 @@ export function Carteira() {
       linhas.map((l) => [
         l.comprador_nome,
         formatarCpf(l.comprador_cpf),
-        l.comprador_telefone ?? '',
+        l.comprador_telefone ? formatarTelefone(l.comprador_telefone) : '',
         l.empreendimento ?? '',
         l.imovel,
         l.status_contrato === 'quitado' ? 'Quitado' : l.parcelas_vencidas > 0 ? 'Em atraso' : 'Em dia',
@@ -83,7 +72,7 @@ export function Carteira() {
         Number(l.valor_vencido).toFixed(2).replace('.', ','),
         Number(l.total_pago).toFixed(2).replace('.', ','),
         Number(l.saldo_em_aberto).toFixed(2).replace('.', ','),
-        l.status_acesso === 'ativo' ? 'Ativo' : l.status_acesso === 'bloqueado' ? 'Bloqueado' : 'Não ativou',
+        l.status_acesso === 'bloqueado' ? 'Bloqueado' : l.status_acesso !== 'ativo' ? 'Não ativou' : l.deve_trocar_senha ? 'Aguardando 1º acesso' : 'Ativo',
       ]),
     );
   }
@@ -169,7 +158,7 @@ export function Carteira() {
                     )}
                   </td>
                   <td className="text-right font-semibold">{Number(l.valor_vencido) > 0 ? formatarMoeda(Number(l.valor_vencido)) : '—'}</td>
-                  <td><SeloAcesso status={l.status_acesso} /></td>
+                  <td><SeloAcesso status={l.status_acesso} aguardando={l.deve_trocar_senha} /></td>
                 </tr>
               ))}
             </tbody>

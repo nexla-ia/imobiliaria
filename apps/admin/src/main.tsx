@@ -23,8 +23,17 @@ const queryClient = new QueryClient({
 });
 
 function Protegido() {
-  const { carregando, session, membro, empresa } = useSessao();
+  const { carregando, session, membro, empresa, erroPerfil, recarregarPerfil } = useSessao();
   if (carregando) return <Carregando />;
+  if (session && erroPerfil) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
+        <p className="text-lg font-bold text-noite">Não foi possível carregar o painel</p>
+        <p className="text-sm text-suave">Confira a internet e tente de novo.</p>
+        <button onClick={recarregarPerfil} className="h-10 rounded-lg bg-noite px-4 text-sm font-semibold text-white">Tentar de novo</button>
+      </div>
+    );
+  }
   if (!session || !membro || !empresa) return <Navigate to="/login" replace />;
   if (session.user.user_metadata?.trocar_senha) return <Navigate to="/trocar-senha" replace />;
   return <Outlet />;

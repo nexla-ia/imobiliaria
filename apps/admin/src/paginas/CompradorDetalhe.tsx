@@ -46,6 +46,7 @@ export function CompradorDetalhe() {
   const queryClient = useQueryClient();
   const [sincronizando, setSincronizando] = useState(false);
   const [convite, setConvite] = useState(false);
+  const [salvandoBloqueio, setSalvandoBloqueio] = useState(false);
   // momento em que a tela abriu, para comparar a validade da senha provisória
   const [agora] = useState(() => Date.now());
   const [confirmarBloqueio, setConfirmarBloqueio] = useState(false);
@@ -100,14 +101,16 @@ export function CompradorDetalhe() {
   async function alternarBloqueio() {
     const c = comprador.data!;
     const novo = c.status_acesso === 'bloqueado' ? (c.auth_user_id ? 'ativo' : 'convidado') : 'bloqueado';
+    setSalvandoBloqueio(true);
     try {
       exigir(await supabase.from('compradores').update({ status_acesso: novo }).eq('id', id));
       avisar(novo === 'bloqueado' ? 'Acesso bloqueado. O comprador não vê mais nada no app.' : 'Acesso liberado.');
       setConfirmarBloqueio(false);
-      await queryClient.invalidateQueries({ queryKey: ['comprador', id] });
-      await queryClient.invalidateQueries({ queryKey: ['compradores'] });
+      await queryClient.invalidateQueries();
     } catch (e) {
       avisar(mensagemDeErro(e), 'erro');
+    } finally {
+      setSalvandoBloqueio(false);
     }
   }
 
@@ -206,6 +209,7 @@ export function CompradorDetalhe() {
         aberto={confirmarBloqueio}
         aoFechar={() => setConfirmarBloqueio(false)}
         aoConfirmar={alternarBloqueio}
+        carregando={salvandoBloqueio}
         titulo={c.status_acesso === 'bloqueado' ? 'Desbloquear acesso?' : 'Bloquear acesso ao app?'}
         texto={
           c.status_acesso === 'bloqueado'
@@ -215,7 +219,7 @@ export function CompradorDetalhe() {
         rotulo={c.status_acesso === 'bloqueado' ? 'Desbloquear' : 'Bloquear'}
         perigo={c.status_acesso !== 'bloqueado'}
       />
-      <EditarContato aberto={editando} aoFechar={() => setEditando(false)} comprador={c} />
+      {editando && <EditarContato aberto aoFechar={() => setEditando(false)} comprador={c} />}
     </>
   );
 }
@@ -224,16 +228,26 @@ function CartaoContrato({ contrato, resumo, cobrancas }: { contrato: ContratoDet
   const queryClient = useQueryClient();
   const avisar = useAvisar();
   const [cancelar, setCancelar] = useState(false);
+  const [salvando, setSalvando] = useState(false);
   const [aberto, setAberto] = useState(contrato.status !== 'cancelado');
 
-  async function cancelarContrato() {
+  async function mudarStatus(status: 'cancelado' | 'ativo') {
+    setSalvando(true);
     try {
-      exigir(await supabase.from('contratos').update({ status: 'cancelado' }).eq('id', contrato.id));
-      avisar('Contrato cancelado. Ele não aparece mais no app.');
+      exigir(await supabase.from('contratos').update({ status }).eq('id', contrato.id));
+      if (status === 'ativo') {
+        // volta como ativo e o sync recalcula (pode virar quitado)
+        await chamar<SyncRes>('asaas-sync', { contrato_id: contrato.id }).catch(() => null);
+      }
+      avisar(status === 'cancelado' ? 'Contrato cancelado. Ele não aparece mais no app.' : 'Contrato reativado. Volta a aparecer no app.');
       setCancelar(false);
       await queryClient.invalidateQueries();
     } catch (e) {
-      avisar(mensagemDeErro(e), 'erro');
+      avisar(/unique|duplicate/i.test(mensagemDeErro(e)) || /Já existe/.test(mensagemDeErro(e))
+        ? 'Este parcelamento já está ligado a outro contrato ativo.'
+        : mensagemDeErro(e), 'erro');
+    } finally {
+      setSalvando(false);
     }
   }
 
@@ -249,8 +263,10 @@ function CartaoContrato({ contrato, resumo, cobrancas }: { contrato: ContratoDet
       acoes={
         <>
           <Botao variante="fantasma" className="h-8 px-2" onClick={() => setAberto(!aberto)}>{aberto ? 'Recolher' : 'Ver parcelas'}</Botao>
-          {contrato.status !== 'cancelado' && (
+          {contrato.status !== 'cancelado' ? (
             <Botao variante="fantasma" className="h-8 px-2 text-erro" onClick={() => setCancelar(true)}>Cancelar contrato</Botao>
+          ) : (
+            <Botao variante="fantasma" className="h-8 px-2" onClick={() => mudarStatus('ativo')} carregando={salvando}>Reativar contrato</Botao>
           )}
         </>
       }
@@ -271,9 +287,10 @@ function CartaoContrato({ contrato, resumo, cobrancas }: { contrato: ContratoDet
       <Confirmar
         aberto={cancelar}
         aoFechar={() => setCancelar(false)}
-        aoConfirmar={cancelarContrato}
+        aoConfirmar={() => mudarStatus('cancelado')}
+        carregando={salvando}
         titulo="Cancelar este contrato no app?"
-        texto="O contrato e as parcelas deixam de aparecer para o comprador. Nada é alterado no Asaas: cancele ou remova as cobranças lá, se for o caso."
+        texto="O contrato e as parcelas deixam de aparecer para o comprador. Nada é alterado no Asaas: cancele ou remova as cobranças lá, se for o caso. Dá para reativar depois."
         rotulo="Cancelar contrato"
         perigo
       />
@@ -302,7 +319,7 @@ function TabelaCobrancas({ cobrancas, avulsas }: { cobrancas: Cobranca[]; avulsa
             <td className="text-right tabular-nums">
               {formatarMoeda(Number(x.valor))}
               {x.valor_original != null && Number(x.valor_original) !== Number(x.valor) && (
-                <div className="text-xs text-suave">pago {formatarMoeda(Number(x.valor_original))}</div>
+                <div className="text-xs text-suave">original {formatarMoeda(Number(x.valor_original))}</div>
               )}
             </td>
             <td><SeloCobranca status={x.status_app} removida={x.removida} /></td>
@@ -330,6 +347,7 @@ function Documentos({ comprador, contratos }: { comprador: Comprador; contratos:
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [remover, setRemover] = useState<Documento | null>(null);
+  const [removendo, setRemovendo] = useState(false);
 
   const docs = useQuery({
     queryKey: ['comprador', comprador.id, 'documentos'],
@@ -347,16 +365,18 @@ function Documentos({ comprador, contratos }: { comprador: Comprador; contratos:
     try {
       const caminho = `${comprador.empresa_id}/${comprador.id}/${crypto.randomUUID()}.pdf`;
       exigir(await supabase.storage.from('documentos').upload(caminho, arquivo, { contentType: 'application/pdf' }));
-      exigir(
-        await supabase.from('documentos').insert({
+      const inserido = await supabase.from('documentos').insert({
           empresa_id: comprador.empresa_id,
           comprador_id: comprador.id,
           contrato_id: contratoId || null,
           titulo: titulo.trim() || arquivo.name.replace(/\.pdf$/i, ''),
           tipo,
           storage_path: caminho,
-        }),
-      );
+        });
+      if (inserido.error) {
+        await supabase.storage.from('documentos').remove([caminho]); // não deixa o PDF sem cadastro
+        throw inserido.error;
+      }
       avisar('Documento enviado. Já aparece no app do comprador.');
       setArquivo(null);
       setTitulo('');
@@ -377,14 +397,18 @@ function Documentos({ comprador, contratos }: { comprador: Comprador; contratos:
 
   async function confirmarRemocao() {
     if (!remover) return;
+    setRemovendo(true);
     try {
       exigir(await supabase.from('documentos').delete().eq('id', remover.id));
-      await supabase.storage.from('documentos').remove([remover.storage_path]);
+      const { error: erroArquivo } = await supabase.storage.from('documentos').remove([remover.storage_path]);
+      if (erroArquivo) console.warn('arquivo do documento não removido do Storage', erroArquivo);
       avisar('Documento removido.');
       setRemover(null);
       await queryClient.invalidateQueries({ queryKey: ['comprador', comprador.id, 'documentos'] });
     } catch (e) {
       avisar(mensagemDeErro(e), 'erro');
+    } finally {
+      setRemovendo(false);
     }
   }
 
@@ -443,6 +467,7 @@ function Documentos({ comprador, contratos }: { comprador: Comprador; contratos:
         aberto={!!remover}
         aoFechar={() => setRemover(null)}
         aoConfirmar={confirmarRemocao}
+        carregando={removendo}
         titulo="Remover documento?"
         texto={`"${remover?.titulo}" deixa de aparecer no app do comprador.`}
         rotulo="Remover"
@@ -469,7 +494,7 @@ function EditarContato({ aberto, aoFechar, comprador }: { aberto: boolean; aoFec
     try {
       exigir(await supabase.from('compradores').update({ nome: nome.trim(), telefone: tel, email: email.trim() || null }).eq('id', comprador.id));
       avisar('Dados atualizados.');
-      await queryClient.invalidateQueries({ queryKey: ['comprador', comprador.id] });
+      await queryClient.invalidateQueries();
       aoFechar();
     } catch (e) {
       setErro(mensagemDeErro(e));

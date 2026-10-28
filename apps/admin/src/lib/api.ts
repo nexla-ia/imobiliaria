@@ -41,3 +41,13 @@ export function exigir<T = unknown>(resultado: { data: unknown; error: unknown }
   if (resultado.error) throw resultado.error;
   return resultado.data as T;
 }
+
+/** Busca todas as linhas, de 1000 em 1000 (limite da API). A consulta precisa ter ordem estável. */
+export async function buscarTodos<T>(pagina: (de: number, ate: number) => PromiseLike<{ data: unknown; error: unknown }>): Promise<T[]> {
+  const todas: T[] = [];
+  for (let de = 0; ; de += 1000) {
+    const lote = exigir<T[]>(await pagina(de, de + 999)) ?? [];
+    todas.push(...lote);
+    if (lote.length < 1000) return todas;
+  }
+}

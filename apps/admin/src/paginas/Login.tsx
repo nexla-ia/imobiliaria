@@ -13,7 +13,8 @@ export function Login() {
   const [modoRecuperar, setModoRecuperar] = useState(false);
   const [recuperacaoEnviada, setRecuperacaoEnviada] = useState(false);
 
-  if (session && membro) return <Navigate to="/" replace />;
+  const { empresa } = useSessao();
+  if (session && membro && empresa) return <Navigate to="/" replace />;
 
   async function entrar(e: FormEvent) {
     e.preventDefault();

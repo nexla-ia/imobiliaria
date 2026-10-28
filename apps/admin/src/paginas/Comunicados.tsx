@@ -21,6 +21,9 @@ export function Comunicados() {
   const [erro, setErro] = useState<string | null>(null);
   const [confirmar, setConfirmar] = useState(false);
   const [enviando, setEnviando] = useState(false);
+  // id do comunicado já gravado: tentar de novo reenvia o mesmo em vez de criar outro
+  const [criadoId, setCriadoId] = useState<string | null>(null);
+  const [pendente, setPendente] = useState<Comunicado | null>(null);
 
   const historico = useQuery({
     queryKey: ['comunicados'],
@@ -58,7 +61,7 @@ export function Comunicados() {
   async function enviar(existente?: Comunicado) {
     setEnviando(true);
     try {
-      let id = existente?.id;
+      let id = existente?.id ?? criadoId ?? undefined;
       if (!id) {
         const novo = exigir(
           await supabase
@@ -68,14 +71,19 @@ export function Comunicados() {
             .single(),
         ) as { id: string };
         id = novo.id;
+        setCriadoId(novo.id);
       }
       const r = await chamar<EnviarComunicadoRes>('notify-comunicado', { comunicado_id: id });
       avisar(`Comunicado enviado para ${r.destinatarios} comprador${r.destinatarios === 1 ? '' : 'es'}.`);
-      setTitulo('');
-      setCorpo('');
-      setAlvo('todos');
-      setAlvoId('');
+      if (!existente) {
+        setTitulo('');
+        setCorpo('');
+        setAlvo('todos');
+        setAlvoId('');
+        setCriadoId(null);
+      }
       setConfirmar(false);
+      setPendente(null);
     } catch (e) {
       avisar(mensagemDeErro(e), 'erro');
     } finally {
@@ -91,10 +99,10 @@ export function Comunicados() {
         <Cartao titulo="Novo comunicado" className="self-start">
           <form onSubmit={validar} className="space-y-4 p-5">
             <Campo rotulo="Título" dica={`${titulo.length}/${LIMITE_TITULO}`}>
-              <Entrada id="comunicado-titulo" maxLength={LIMITE_TITULO} value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex.: Manutenção das vias do loteamento" />
+              <Entrada id="comunicado-titulo" maxLength={LIMITE_TITULO} value={titulo} onChange={(e) => { setTitulo(e.target.value); setCriadoId(null); }} placeholder="Ex.: Manutenção das vias do loteamento" />
             </Campo>
             <Campo rotulo="Mensagem" dica={`${corpo.length}/${LIMITE_CORPO}`}>
-              <AreaTexto id="comunicado-corpo" maxLength={LIMITE_CORPO} value={corpo} onChange={(e) => setCorpo(e.target.value)} rows={4} />
+              <AreaTexto id="comunicado-corpo" maxLength={LIMITE_CORPO} value={corpo} onChange={(e) => { setCorpo(e.target.value); setCriadoId(null); }} rows={4} />
             </Campo>
             <fieldset className="space-y-2">
               <legend className="mb-1.5 text-sm font-semibold">Para quem</legend>
@@ -150,7 +158,7 @@ export function Comunicados() {
                     {c.enviado_em ? (
                       <Selo tom="ok">Enviado para {c.total_destinatarios ?? 0}</Selo>
                     ) : (
-                      <Botao variante="secundario" className="h-8" onClick={() => enviar(c)} carregando={enviando}>Enviar agora</Botao>
+                      <Botao variante="secundario" className="h-8" onClick={() => setPendente(c)}>Enviar agora</Botao>
                     )}
                   </div>
                   <p className="mt-1 text-sm text-suave">{c.corpo}</p>
@@ -164,6 +172,15 @@ export function Comunicados() {
         </Cartao>
       </div>
 
+      <Confirmar
+        aberto={!!pendente}
+        aoFechar={() => setPendente(null)}
+        aoConfirmar={() => pendente && enviar(pendente)}
+        carregando={enviando}
+        titulo="Enviar este comunicado?"
+        texto={<>"{pendente?.titulo}" vai para: <strong>{pendente ? nomeDoAlvo(pendente) : ''}</strong>.</>}
+        rotulo="Enviar"
+      />
       <Confirmar
         aberto={confirmar}
         aoFechar={() => setConfirmar(false)}

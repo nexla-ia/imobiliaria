@@ -116,7 +116,7 @@ export function Configuracoes() {
             <Campo rotulo="Código de acesso (WhatsApp)" dica={<>Use <Variaveis nomes={['empresa', 'codigo', 'minutos', 'nome']} />. Deixe vazio para o texto padrão.</>}>
               <AreaTexto id="config-msg-codigo" {...texto('mensagem_codigo')} rows={5} placeholder="{empresa}: seu código de acesso ao app é {codigo}. Ele vale por {minutos} minutos. Não compartilhe com ninguém." />
             </Campo>
-            <Campo rotulo="Convite para baixar o app" dica={<>Use <Variaveis nomes={['nome', 'empresa', 'links']} />.</>}>
+            <Campo rotulo="Convite para baixar o app" dica={<>Use <Variaveis nomes={['nome', 'empresa', 'links', 'senha', 'dias']} />. Sem {'{senha}'}, a senha vai no fim da mensagem.</>}>
               <AreaTexto id="config-msg-convite" {...texto('mensagem_convite')} rows={5} placeholder='Olá, {nome}! A {empresa} agora tem um app…' />
             </Campo>
             <Campo rotulo='Mensagem do botão "Fale com a imobiliária"' dica={<>Use <Variaveis nomes={['nome', 'cpf', 'imovel']} />.</>}>
@@ -149,6 +149,7 @@ function Equipe() {
   const queryClient = useQueryClient();
   const [novo, setNovo] = useState(false);
   const [remover, setRemover] = useState<UsuarioAdmin | null>(null);
+  const [removendo, setRemovendo] = useState(false);
 
   const equipe = useQuery({
     queryKey: ['equipe'],
@@ -167,6 +168,7 @@ function Equipe() {
 
   async function confirmarRemocao() {
     if (!remover) return;
+    setRemovendo(true);
     try {
       exigir(await supabase.from('usuarios_admin').delete().eq('id', remover.id));
       avisar(`${remover.nome} não acessa mais o painel.`);
@@ -174,6 +176,8 @@ function Equipe() {
       await queryClient.invalidateQueries({ queryKey: ['equipe'] });
     } catch (e) {
       avisar(mensagemDeErro(e), 'erro');
+    } finally {
+      setRemovendo(false);
     }
   }
 
@@ -213,6 +217,7 @@ function Equipe() {
         aberto={!!remover}
         aoFechar={() => setRemover(null)}
         aoConfirmar={confirmarRemocao}
+        carregando={removendo}
         titulo="Remover da equipe?"
         texto={`${remover?.nome} perde o acesso ao painel na hora.`}
         rotulo="Remover"

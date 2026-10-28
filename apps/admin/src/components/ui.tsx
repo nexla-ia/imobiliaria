@@ -202,12 +202,14 @@ export function Tabela({ children }: { children: ReactNode }) {
 }
 
 // --- Modal ---------------------------------------------------------------------
-export function Modal({ aberto, aoFechar, titulo, children, largura = 'max-w-lg' }: {
+export function Modal({ aberto, aoFechar, titulo, children, largura = 'max-w-lg', bloqueado }: {
   aberto: boolean;
   aoFechar: () => void;
   titulo: string;
   children: ReactNode;
   largura?: string;
+  /** enquanto true, Esc e clique fora não fecham (trabalho em andamento) */
+  bloqueado?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -220,7 +222,8 @@ export function Modal({ aberto, aoFechar, titulo, children, largura = 'max-w-lg'
     <dialog
       ref={ref}
       onClose={aoFechar}
-      onClick={(e) => e.target === ref.current && aoFechar()}
+      onCancel={(e) => bloqueado && e.preventDefault()}
+      onClick={(e) => !bloqueado && e.target === ref.current && aoFechar()}
       className={cx('m-auto w-[calc(100%-2rem)] rounded-2xl p-0 shadow-2xl backdrop:bg-noite/50', largura)}
     >
       {aberto && (
@@ -244,10 +247,10 @@ export function Confirmar({ aberto, aoFechar, aoConfirmar, titulo, texto, rotulo
   carregando?: boolean;
 }) {
   return (
-    <Modal aberto={aberto} aoFechar={aoFechar} titulo={titulo} largura="max-w-md">
+    <Modal aberto={aberto} aoFechar={aoFechar} titulo={titulo} largura="max-w-md" bloqueado={carregando}>
       <div className="text-sm leading-relaxed text-suave">{texto}</div>
       <div className="mt-6 flex justify-end gap-2">
-        <Botao variante="secundario" onClick={aoFechar}>Cancelar</Botao>
+        <Botao variante="secundario" onClick={aoFechar} disabled={carregando}>Cancelar</Botao>
         <Botao variante={perigo ? 'perigo' : 'primario'} onClick={aoConfirmar} carregando={carregando}>{rotulo}</Botao>
       </div>
     </Modal>
