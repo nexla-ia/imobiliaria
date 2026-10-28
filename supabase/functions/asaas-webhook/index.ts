@@ -3,21 +3,12 @@
  * Entrega "at least once": grava o evento pelo id antes de processar e ignora repetidos.
  * Responde 2xx sempre que o token confere, mesmo se o processamento falhar: o erro fica
  * em asaas_webhook_eventos e o sync diário corrige. Assim a fila do Asaas nunca é pausada
- * (15 falhas seguidas interrompem a fila).
+ * (15 falhas seguidas interrompem a fila). Eventos gravados e não processados (a função
+ * caiu no meio) são reprocessados pelo asaas-sync do cron.
  */
-import type { AsaasPayment } from '../_shared/asaas.ts';
-import { gravarCobrancas, vinculoDoPagamento } from '../_shared/cobrancas.ts';
 import { iguaisSeguro, json } from '../_shared/http.ts';
 import { admin } from '../_shared/supabase.ts';
-
-interface EventoAsaas {
-  id?: string;
-  event?: string;
-  dateCreated?: string;
-  payment?: AsaasPayment;
-}
-
-const EVENTOS_DE_PAGAMENTO_RECEBIDO = new Set(['PAYMENT_RECEIVED', 'PAYMENT_CONFIRMED']);
+import { type EventoAsaas, processarEvento } from '../_shared/webhook.ts';
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response('método não permitido', { status: 405 });
@@ -35,6 +26,7 @@ Deno.serve(async (req) => {
   if (!evento.event) return json({ ok: true, ignorado: 'sem evento' });
 
   const db = admin();
+  const recebidoEm = new Date().toISOString();
   const idEvento = evento.id ?? `${evento.event}:${evento.payment?.id}:${evento.dateCreated}`;
   const { data: registro, error: erroRegistro } = await db
     .from('asaas_webhook_eventos')
@@ -48,31 +40,6 @@ Deno.serve(async (req) => {
   }
   if (!registro) return json({ ok: true, duplicado: true });
 
-  let erro: string | null = null;
-  let empresaId: string | null = null;
-  try {
-    const p = evento.payment;
-    if (evento.event.startsWith('PAYMENT_') && p?.id) {
-      const vinculo = await vinculoDoPagamento(db, p);
-      if (!vinculo) {
-        erro = 'sem_vinculo: cobrança de cliente/parcelamento não vinculado a nenhum comprador';
-      } else {
-        empresaId = vinculo.empresa_id;
-        const removida = evento.event === 'PAYMENT_DELETED' ? true : evento.event === 'PAYMENT_RESTORED' ? false : undefined;
-        await gravarCobrancas(db, [{ payment: p, vinculo, removida }], {
-          notificarNovasPagas: EVENTOS_DE_PAGAMENTO_RECEBIDO.has(evento.event),
-        });
-      }
-    }
-  } catch (e) {
-    console.error('falha ao processar evento', idEvento, e);
-    erro = e instanceof Error ? e.message : String(e);
-  }
-
-  await db
-    .from('asaas_webhook_eventos')
-    .update({ processado_em: new Date().toISOString(), erro, empresa_id: empresaId })
-    .eq('id', registro.id);
-
+  await processarEvento(db, registro.id, evento, recebidoEm);
   return json({ ok: true });
 });

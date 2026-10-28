@@ -214,6 +214,8 @@ export interface LinhaCarteira {
   vencida_desde: DataIso | null;
   valor_vencido: number;
   ultima_sync_em: DataHoraIso | null;
+  /** recebeu senha provisória e ainda não entrou para criar a própria */
+  deve_trocar_senha: boolean;
 }
 
 export interface AuditLog {

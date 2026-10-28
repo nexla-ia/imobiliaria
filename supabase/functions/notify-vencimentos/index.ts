@@ -21,15 +21,17 @@ servir(async (req) => {
       const alvo = dataNoFuso(empresa.fuso_horario, dias);
       let consulta = db
         .from('cobrancas')
-        .select('id, asaas_payment_id, comprador_id, contrato_id, numero_parcela, valor, descricao, vencimento, compradores!inner(status_acesso)')
+        .select('id, asaas_payment_id, comprador_id, contrato_id, numero_parcela, valor, descricao, vencimento, compradores!inner(status_acesso, deve_trocar_senha), contratos(status)')
         .eq('empresa_id', empresa.id)
         .eq('status_app', 'em_aberto')
         .eq('removida', false)
         .eq('vencimento', alvo)
-        .eq('compradores.status_acesso', 'ativo');
+        .eq('compradores.status_acesso', 'ativo')
+        .eq('compradores.deve_trocar_senha', false);
       if (!empresa.mostrar_cobrancas_avulsas) consulta = consulta.not('contrato_id', 'is', null);
-      const { data: cobrancas, error: e } = await consulta;
+      const { data: todas, error: e } = await consulta;
       if (e) throw e;
+      const cobrancas = (todas ?? []).filter((c) => (c.contratos as { status?: string } | null)?.status !== 'cancelado');
       if (!cobrancas?.length) continue;
 
       const totais = new Map<string, number>();

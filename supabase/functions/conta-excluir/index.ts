@@ -10,10 +10,11 @@ servir(async (req) => {
   const comprador = await exigirComprador(req);
   const db = admin();
 
-  const { error } = await db.rpc('comprador_excluir_conta', { p_comprador_id: comprador.id });
-  if (error) throw error;
+  // login primeiro: se falhar, o cadastro continua inteiro e dá para tentar de novo
   const { error: erroAuth } = await db.auth.admin.deleteUser(comprador.auth_user_id);
   if (erroAuth) throw erroAuth;
+  const { error } = await db.rpc('comprador_excluir_conta', { p_comprador_id: comprador.id });
+  if (error) throw error;
 
   await registrarAuditoria(comprador.empresa_id, null, 'excluir_conta', 'compradores', comprador.id, {});
   return json({ ok: true });

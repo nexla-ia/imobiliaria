@@ -40,22 +40,38 @@ servir(async (req) => {
   const disponiveis = canaisDisponiveis();
   const resposta = json({ ok: true, automatico: disponiveis.whatsapp || disponiveis.email });
 
+  // O resto (achar o comprador, gravar e enviar) roda depois da resposta: assim o tempo de
+  // resposta é o mesmo para CPF cadastrado ou não.
+  const trabalho = gerarEEnviar(db, slug, cpf, corpo.canal, disponiveis).catch((e) => console.error('auth-solicitar-codigo', e));
+  const runtime = (globalThis as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime;
+  if (runtime) runtime.waitUntil(trabalho);
+  else await trabalho;
+  return resposta;
+});
+
+async function gerarEEnviar(
+  db: ReturnType<typeof admin>,
+  slug: string,
+  cpf: string,
+  canalPedido: Corpo['canal'],
+  disponiveis: ReturnType<typeof canaisDisponiveis>,
+): Promise<void> {
   const { data: empresa } = await db.from('empresas').select('id, nome, textos').eq('slug', slug).maybeSingle();
-  if (!empresa) return resposta;
+  if (!empresa) return;
   const { data: comprador } = await db
     .from('compradores')
     .select('id, nome, telefone, email, status_acesso')
     .eq('empresa_id', empresa.id)
     .eq('cpf', cpf)
     .maybeSingle();
-  if (!comprador || comprador.status_acesso === 'bloqueado') return resposta;
+  if (!comprador || comprador.status_acesso === 'bloqueado') return;
 
   const podeWhats = disponiveis.whatsapp && !!normalizarTelefone(comprador.telefone);
   const podeEmail = disponiveis.email && !!comprador.email;
-  const canal = corpo.canal === 'email' && podeEmail ? 'email' : podeWhats ? 'whatsapp' : podeEmail ? 'email' : null;
+  const canal = canalPedido === 'email' && podeEmail ? 'email' : podeWhats ? 'whatsapp' : podeEmail ? 'email' : null;
   if (!canal) {
     console.warn(`comprador ${comprador.id} sem canal para receber código`);
-    return resposta;
+    return;
   }
 
   const codigo = String(crypto.getRandomValues(new Uint32Array(1))[0]! % 1_000_000).padStart(6, '0');
@@ -85,5 +101,4 @@ servir(async (req) => {
     // não revela a falha para quem pediu; fica no log para a equipe
     console.error(`falha ao enviar código (${canal}) para comprador ${comprador.id}`, e);
   }
-  return resposta;
-});
+}

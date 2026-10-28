@@ -14,9 +14,15 @@ export interface Vinculo {
   contrato_id: string | null;
 }
 
-interface ItemGravacao {
+export interface ItemGravacao {
   payment: AsaasPayment;
   vinculo: Vinculo;
+  /**
+   * true quando o vínculo vem do contrato ativo do parcelamento: vale mais que o gravado
+   * (o parcelamento pode ter sido religado a outro contrato depois de um cancelamento).
+   * Para avulsas fica false: o vínculo feito à mão no painel é mantido.
+   */
+  vinculoDoContrato?: boolean;
   removida?: boolean;
 }
 
@@ -28,7 +34,10 @@ interface LinhaExistente {
   contrato_id: string | null;
   status_app: string;
   numero_parcela: number | null;
+  atualizado_asaas_em: string;
 }
+
+const LOTE = 150; // UUIDs por .in() sem estourar o tamanho da URL
 
 /** "Parcela 3 de 60." → 3 (descrição automática do Asaas em parcelamentos). */
 export function numeroDaDescricao(descricao: string | null | undefined): number | null {
@@ -36,14 +45,20 @@ export function numeroDaDescricao(descricao: string | null | undefined): number 
   return m ? Number(m[1]) : null;
 }
 
+function exigirOk<T extends { error: unknown }>(r: T): T {
+  if (r.error) throw r.error;
+  return r;
+}
+
 async function buscarExistentes(db: Admin, paymentIds: string[]): Promise<Map<string, LinhaExistente>> {
   const mapa = new Map<string, LinhaExistente>();
-  for (let i = 0; i < paymentIds.length; i += 200) {
-    const { data, error } = await db
-      .from('cobrancas')
-      .select('id, asaas_payment_id, empresa_id, comprador_id, contrato_id, status_app, numero_parcela')
-      .in('asaas_payment_id', paymentIds.slice(i, i + 200));
-    if (error) throw error;
+  for (let i = 0; i < paymentIds.length; i += LOTE) {
+    const { data } = exigirOk(
+      await db
+        .from('cobrancas')
+        .select('id, asaas_payment_id, empresa_id, comprador_id, contrato_id, status_app, numero_parcela, atualizado_asaas_em')
+        .in('asaas_payment_id', paymentIds.slice(i, i + LOTE)),
+    );
     for (const l of data ?? []) mapa.set(l.asaas_payment_id, l as LinhaExistente);
   }
   return mapa;
@@ -53,58 +68,68 @@ async function buscarExistentes(db: Admin, paymentIds: string[]): Promise<Map<st
  * Grava (insere ou atualiza) as cobranças e dispara a notificação de pagamento
  * para as que passaram a "paga". Linhas novas já pagas só notificam quando
  * notificarNovasPagas = true (webhook); na importação inicial, não.
+ *
+ * `lidoEm`: quando a informação foi lida do Asaas. Linhas atualizadas depois disso
+ * (por um webhook mais novo) não são sobrescritas por esta leitura mais antiga.
  */
 export async function gravarCobrancas(
   db: Admin,
-  itens: ItemGravacao[],
-  opcoes: { notificarNovasPagas?: boolean } = {},
+  itensBrutos: ItemGravacao[],
+  opcoes: { notificarNovasPagas?: boolean; lidoEm?: string } = {},
 ): Promise<{ gravadas: number; pagasAgora: number }> {
-  if (itens.length === 0) return { gravadas: 0, pagasAgora: 0 };
-  const existentes = await buscarExistentes(db, itens.map((i) => i.payment.id));
+  // paginação por offset numa lista que muda pode repetir uma cobrança; o upsert não aceita repetidas
+  const porId = new Map(itensBrutos.map((i) => [i.payment.id, i]));
+  if (porId.size === 0) return { gravadas: 0, pagasAgora: 0 };
+  const existentes = await buscarExistentes(db, [...porId.keys()]);
 
-  const linhas = itens.map(({ payment, vinculo, removida }) => {
+  const itens = [...porId.values()].filter((i) => {
+    const atual = existentes.get(i.payment.id);
+    return !(opcoes.lidoEm && atual && atual.atualizado_asaas_em > opcoes.lidoEm);
+  });
+  if (itens.length === 0) return { gravadas: 0, pagasAgora: 0 };
+
+  const linhas = itens.map(({ payment, vinculo, vinculoDoContrato, removida }) => {
     const atual = existentes.get(payment.id);
     const base = cobrancaParaLinha(payment);
+    const usarVinculo = !atual || vinculoDoContrato;
     return {
       ...base,
-      // o vínculo já gravado vale mais que o deduzido agora (pode ter sido feito à mão no painel)
-      empresa_id: atual?.empresa_id ?? vinculo.empresa_id,
-      comprador_id: atual?.comprador_id ?? vinculo.comprador_id,
-      contrato_id: atual ? atual.contrato_id : vinculo.contrato_id,
+      empresa_id: usarVinculo ? vinculo.empresa_id : atual!.empresa_id,
+      comprador_id: usarVinculo ? vinculo.comprador_id : atual!.comprador_id,
+      contrato_id: usarVinculo ? vinculo.contrato_id : atual!.contrato_id,
       numero_parcela: base.numero_parcela ?? numeroDaDescricao(payment.description) ?? atual?.numero_parcela ?? null,
       removida: removida ?? base.removida,
     };
   });
 
-  const { data: gravadas, error } = await db
-    .from('cobrancas')
-    .upsert(linhas, { onConflict: 'asaas_payment_id' })
-    .select('id, asaas_payment_id, empresa_id, comprador_id, contrato_id, status_app, numero_parcela, valor, valor_original, descricao, removida');
-  if (error) throw error;
+  const { data: gravadas } = exigirOk(
+    await db
+      .from('cobrancas')
+      .upsert(linhas, { onConflict: 'asaas_payment_id' })
+      .select('id, asaas_payment_id, empresa_id, comprador_id, contrato_id, status_app, numero_parcela, valor, descricao, removida'),
+  );
 
   // parcelas sem número: numera pela ordem de vencimento
   const contratosSemNumero = new Set(
     (gravadas ?? []).filter((g) => g.contrato_id && g.numero_parcela == null).map((g) => g.contrato_id as string),
   );
-  for (const contratoId of contratosSemNumero) {
-    const { error: e } = await db.rpc('renumerar_parcelas', { p_contrato_id: contratoId });
-    if (e) throw e;
-  }
+  for (const contratoId of contratosSemNumero) exigirOk(await db.rpc('renumerar_parcelas', { p_contrato_id: contratoId }));
 
   const contratosTocados = [...new Set((gravadas ?? []).map((g) => g.contrato_id).filter(Boolean) as string[])];
   await atualizarStatusContratos(db, contratosTocados);
 
-  // notificação de pagamento recebido
-  const pagas = (gravadas ?? []).filter((g) => {
+  // notificação de pagamento recebido (não para contrato cancelado nem avulsa escondida no app)
+  const candidatas = (gravadas ?? []).filter((g) => {
     if (g.status_app !== 'paga' || g.removida) return false;
     const antes = existentes.get(g.asaas_payment_id);
     return antes ? antes.status_app !== 'paga' : !!opcoes.notificarNovasPagas;
   });
+  const pagas = await semContratoCanceladoNemAvulsaOculta(db, candidatas);
   if (pagas.length) {
     const totais = await totalDeParcelas(db, pagas.map((p) => p.contrato_id).filter(Boolean) as string[]);
     const numeros = await numerosAtuais(db, pagas.map((p) => p.id));
     const notificacoes: NovaNotificacao[] = pagas.map((p) => {
-      const valor = formatarMoeda(Number(p.valor_original ?? p.valor));
+      const valor = formatarMoeda(Number(p.valor));
       const numero = numeros.get(p.id);
       const total = p.contrato_id ? totais.get(p.contrato_id) : null;
       const oQue = p.contrato_id && numero
@@ -126,6 +151,23 @@ export async function gravarCobrancas(
   return { gravadas: gravadas?.length ?? 0, pagasAgora: pagas.length };
 }
 
+async function semContratoCanceladoNemAvulsaOculta<T extends { contrato_id: string | null; empresa_id: string }>(db: Admin, linhas: T[]): Promise<T[]> {
+  if (!linhas.length) return linhas;
+  const contratoIds = [...new Set(linhas.map((l) => l.contrato_id).filter(Boolean) as string[])];
+  const cancelados = new Set<string>();
+  for (let i = 0; i < contratoIds.length; i += LOTE) {
+    const { data } = exigirOk(await db.from('contratos').select('id').in('id', contratoIds.slice(i, i + LOTE)).eq('status', 'cancelado'));
+    for (const c of data ?? []) cancelados.add(c.id);
+  }
+  const empresaIds = [...new Set(linhas.filter((l) => !l.contrato_id).map((l) => l.empresa_id))];
+  const avulsasVisiveis = new Set<string>();
+  if (empresaIds.length) {
+    const { data } = exigirOk(await db.from('empresas').select('id').in('id', empresaIds).eq('mostrar_cobrancas_avulsas', true));
+    for (const e of data ?? []) avulsasVisiveis.add(e.id);
+  }
+  return linhas.filter((l) => (l.contrato_id ? !cancelados.has(l.contrato_id) : avulsasVisiveis.has(l.empresa_id)));
+}
+
 async function totalDeParcelas(db: Admin, contratoIds: string[]): Promise<Map<string, number>> {
   const mapa = new Map<string, number>();
   if (!contratoIds.length) return mapa;
@@ -143,20 +185,24 @@ async function numerosAtuais(db: Admin, cobrancaIds: string[]): Promise<Map<stri
 
 /** ativo ↔ quitado conforme as parcelas. Contrato cancelado não muda. */
 export async function atualizarStatusContratos(db: Admin, contratoIds: string[]) {
-  if (!contratoIds.length) return;
-  const { data, error } = await db
-    .from('vw_resumo_contrato')
-    .select('contrato_id, total_parcelas, parcelas_pagas, saldo_em_aberto')
-    .in('contrato_id', contratoIds);
-  if (error) throw error;
-  for (const r of data ?? []) {
-    const quitado = r.total_parcelas > 0 && r.parcelas_pagas >= r.total_parcelas && Number(r.saldo_em_aberto) === 0;
-    await db
-      .from('contratos')
-      .update({ status: quitado ? 'quitado' : 'ativo' })
-      .eq('id', r.contrato_id)
-      .neq('status', 'cancelado')
-      .neq('status', quitado ? 'quitado' : 'ativo');
+  for (let i = 0; i < contratoIds.length; i += LOTE) {
+    const { data } = exigirOk(
+      await db
+        .from('vw_resumo_contrato')
+        .select('contrato_id, total_parcelas, parcelas_pagas, saldo_em_aberto')
+        .in('contrato_id', contratoIds.slice(i, i + LOTE)),
+    );
+    for (const r of data ?? []) {
+      const quitado = r.total_parcelas > 0 && r.parcelas_pagas >= r.total_parcelas && Number(r.saldo_em_aberto) === 0;
+      exigirOk(
+        await db
+          .from('contratos')
+          .update({ status: quitado ? 'quitado' : 'ativo' })
+          .eq('id', r.contrato_id)
+          .neq('status', 'cancelado')
+          .neq('status', quitado ? 'quitado' : 'ativo'),
+      );
+    }
   }
 }
 
@@ -167,79 +213,107 @@ export interface CompradorSync {
 }
 
 /**
- * Ressincroniza tudo de um comprador com uma única listagem no Asaas:
- * cobranças de parcelamentos vinculados vão para o contrato; as sem parcelamento
- * ficam como avulsas (ou no contrato a que foram ligadas no painel).
- * Cobranças de parcelamentos que não estão vinculados a nenhum contrato são ignoradas.
+ * Ressincroniza um comprador:
+ * - cada contrato ativo pelo próprio parcelamento (GET /payments?installment=), o que funciona
+ *   mesmo se o CPF tiver mais de um cadastro no Asaas;
+ * - as cobranças avulsas pelo cliente do Asaas do comprador.
+ * Contratos cancelados não são tocados. O que estava no cache e sumiu da listagem
+ * correspondente foi removido no Asaas.
  */
 export async function sincronizarComprador(db: Admin, asaas: ClienteAsaas, comprador: CompradorSync) {
-  if (!comprador.asaas_customer_id) return { cobrancas: 0, contratos: 0 };
-
-  const [pagamentos, contratosRes, existentesRes] = await Promise.all([
-    asaas.listarCobrancasDoCliente(comprador.asaas_customer_id),
-    db.from('contratos').select('id, asaas_installment_id').eq('comprador_id', comprador.id).neq('status', 'cancelado'),
-    db.from('cobrancas').select('asaas_payment_id, contrato_id, removida').eq('comprador_id', comprador.id),
-  ]);
-  if (contratosRes.error) throw contratosRes.error;
-  if (existentesRes.error) throw existentesRes.error;
-
-  const porParcelamento = new Map<string, string>();
-  for (const c of contratosRes.data ?? []) if (c.asaas_installment_id) porParcelamento.set(c.asaas_installment_id, c.id);
-  const existentes = new Map((existentesRes.data ?? []).map((e) => [e.asaas_payment_id, e]));
+  const lidoEm = new Date().toISOString();
+  const { data: contratos } = exigirOk(
+    await db.from('contratos').select('id, asaas_installment_id').eq('comprador_id', comprador.id).neq('status', 'cancelado'),
+  );
+  const { data: existentesLista } = exigirOk(
+    await db.from('cobrancas').select('asaas_payment_id, contrato_id, removida').eq('comprador_id', comprador.id),
+  );
 
   const itens: ItemGravacao[] = [];
   const vistos = new Set<string>();
-  for (const p of pagamentos) {
-    let contratoId: string | null;
-    if (p.installment) {
-      const c = porParcelamento.get(p.installment);
-      if (!c) continue;
-      contratoId = c;
-    } else {
-      contratoId = existentes.get(p.id)?.contrato_id ?? null;
+  const vinculo = (contratoId: string | null): Vinculo => ({ empresa_id: comprador.empresa_id, comprador_id: comprador.id, contrato_id: contratoId });
+
+  // 1) parcelamentos dos contratos
+  const contratosSincronizados = new Set<string>();
+  for (const c of contratos ?? []) {
+    if (!c.asaas_installment_id) continue;
+    const pagamentos = await asaas.listarCobrancasDoParcelamento(c.asaas_installment_id);
+    contratosSincronizados.add(c.id);
+    for (const p of pagamentos) {
+      vistos.add(p.id);
+      itens.push({ payment: p, vinculo: vinculo(c.id), vinculoDoContrato: true });
     }
-    vistos.add(p.id);
-    itens.push({ payment: p, vinculo: { empresa_id: comprador.empresa_id, comprador_id: comprador.id, contrato_id: contratoId } });
+    const ativas = pagamentos.filter((p) => !p.deleted).length;
+    if (ativas > 0) {
+      exigirOk(await db.from('contratos').update({ numero_parcelas: ativas }).eq('id', c.id).or(`numero_parcelas.is.null,numero_parcelas.neq.${ativas}`));
+    }
   }
 
-  // o que estava no cache e sumiu da listagem foi removido no Asaas
-  const sumiram = [...existentes.values()].filter((e) => !e.removida && !vistos.has(e.asaas_payment_id)).map((e) => e.asaas_payment_id);
-  if (sumiram.length) {
-    await db.from('cobrancas').update({ removida: true, atualizado_asaas_em: new Date().toISOString() }).in('asaas_payment_id', sumiram);
+  // 2) avulsas pelo cliente do Asaas (mantém o vínculo manual a um contrato, se houver)
+  let avulsasListadas = false;
+  if (comprador.asaas_customer_id) {
+    const doCliente = await asaas.listarCobrancasDoCliente(comprador.asaas_customer_id);
+    avulsasListadas = true;
+    const contratoAtual = new Map((existentesLista ?? []).map((e) => [e.asaas_payment_id, e.contrato_id]));
+    for (const p of doCliente) {
+      if (p.installment) continue; // parcelamentos vêm do passo 1 (só os vinculados)
+      vistos.add(p.id);
+      itens.push({ payment: p, vinculo: vinculo(contratoAtual.get(p.id) ?? null) });
+    }
   }
 
-  const r = await gravarCobrancas(db, itens);
+  // o que sumiu da listagem correspondente foi removido no Asaas
+  const sumiram = (existentesLista ?? [])
+    .filter((e) => !e.removida && !vistos.has(e.asaas_payment_id))
+    .filter((e) => (e.contrato_id ? contratosSincronizados.has(e.contrato_id) : avulsasListadas))
+    .map((e) => e.asaas_payment_id);
+  for (let i = 0; i < sumiram.length; i += LOTE) {
+    exigirOk(
+      await db.from('cobrancas')
+        .update({ removida: true, atualizado_asaas_em: new Date().toISOString() })
+        .in('asaas_payment_id', sumiram.slice(i, i + LOTE))
+        .lt('atualizado_asaas_em', lidoEm),
+    );
+  }
+
+  const r = await gravarCobrancas(db, itens, { lidoEm });
   const agora = new Date().toISOString();
-  await db.from('compradores').update({ ultima_sync_em: agora }).eq('id', comprador.id);
-  await db.from('contratos').update({ ultima_sync_em: agora }).eq('comprador_id', comprador.id);
-  if (sumiram.length) await atualizarStatusContratos(db, (contratosRes.data ?? []).map((c) => c.id));
-  return { cobrancas: r.gravadas, contratos: contratosRes.data?.length ?? 0 };
+  exigirOk(await db.from('compradores').update({ ultima_sync_em: agora }).eq('id', comprador.id));
+  if (contratosSincronizados.size) {
+    exigirOk(await db.from('contratos').update({ ultima_sync_em: agora }).in('id', [...contratosSincronizados]));
+  }
+  if (sumiram.length) await atualizarStatusContratos(db, [...contratosSincronizados]);
+  return { cobrancas: r.gravadas, contratos: contratosSincronizados.size };
 }
 
-/** Descobre a quem pertence uma cobrança que chegou pelo webhook. */
-export async function vinculoDoPagamento(db: Admin, p: AsaasPayment): Promise<Vinculo | null> {
-  const { data: existente } = await db
-    .from('cobrancas')
-    .select('empresa_id, comprador_id, contrato_id')
-    .eq('asaas_payment_id', p.id)
-    .maybeSingle();
-  if (existente) return existente as Vinculo;
-
+/**
+ * Descobre a quem pertence uma cobrança que chegou pelo webhook.
+ * Parcelamento → contrato ativo dele (ignora contrato cancelado). Avulsa → vínculo já
+ * gravado, senão o comprador do cliente do Asaas.
+ */
+export async function vinculoDoPagamento(db: Admin, p: AsaasPayment): Promise<{ vinculo: Vinculo; doContrato: boolean } | null> {
   if (p.installment) {
-    const { data: contrato } = await db
-      .from('contratos')
-      .select('id, empresa_id, comprador_id')
-      .eq('asaas_installment_id', p.installment)
-      .neq('status', 'cancelado')
-      .maybeSingle();
-    return contrato ? { empresa_id: contrato.empresa_id, comprador_id: contrato.comprador_id, contrato_id: contrato.id } : null;
+    const { data: contrato } = exigirOk(
+      await db
+        .from('contratos')
+        .select('id, empresa_id, comprador_id')
+        .eq('asaas_installment_id', p.installment)
+        .neq('status', 'cancelado')
+        .limit(1)
+        .maybeSingle(),
+    );
+    return contrato
+      ? { vinculo: { empresa_id: contrato.empresa_id, comprador_id: contrato.comprador_id, contrato_id: contrato.id }, doContrato: true }
+      : null;
   }
 
-  const { data: comprador } = await db
-    .from('compradores')
-    .select('id, empresa_id')
-    .eq('asaas_customer_id', p.customer)
-    .limit(1)
-    .maybeSingle();
-  return comprador ? { empresa_id: comprador.empresa_id, comprador_id: comprador.id, contrato_id: null } : null;
+  const { data: existente } = exigirOk(
+    await db.from('cobrancas').select('empresa_id, comprador_id, contrato_id').eq('asaas_payment_id', p.id).maybeSingle(),
+  );
+  if (existente) return { vinculo: existente as Vinculo, doContrato: false };
+
+  const { data: comprador } = exigirOk(
+    await db.from('compradores').select('id, empresa_id').eq('asaas_customer_id', p.customer).limit(1).maybeSingle(),
+  );
+  return comprador ? { vinculo: { empresa_id: comprador.empresa_id, comprador_id: comprador.id, contrato_id: null }, doContrato: false } : null;
 }

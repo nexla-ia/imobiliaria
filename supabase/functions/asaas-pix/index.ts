@@ -10,10 +10,20 @@ servir(async (req) => {
   const db = admin();
   const cobranca = await cobrancaPagavel(db, comprador, cobranca_id);
 
+  // limite por comprador: cada clique gasta 2-3 chamadas da cota do Asaas (25 mil/12 h para a conta toda)
+  const { data: dentro, error: erroLimite } = await db.rpc('rate_limit_registrar', {
+    p_chave: `asaas:comprador:${comprador.id}`,
+    p_janela_segundos: 60,
+    p_limite: 20,
+  });
+  if (erroLimite) throw erroLimite;
+  if (!dentro) throw new ErroHttp(429, 'muitas_tentativas', 'Muitas consultas seguidas. Aguarde um minuto e tente de novo.');
+
   const asaas = criarClienteAsaas();
+  const lidoEm = new Date().toISOString();
   try {
     const pagamento = await asaas.buscarCobranca(cobranca.asaas_payment_id);
-    await atualizarCache(db, cobranca, pagamento);
+    await atualizarCache(db, cobranca, pagamento, lidoEm);
     conferirAindaPagavel(pagamento);
     const qr = await asaas.pixQrCode(pagamento.id);
     return json({

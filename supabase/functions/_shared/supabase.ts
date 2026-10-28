@@ -33,13 +33,17 @@ export async function exigirComprador(req: Request): Promise<CompradorAtual> {
   const user = await exigirUsuario(req);
   const { data, error } = await admin()
     .from('compradores')
-    .select('id, empresa_id, nome, cpf, auth_user_id, status_acesso')
+    .select('id, empresa_id, nome, cpf, auth_user_id, status_acesso, deve_trocar_senha')
     .eq('auth_user_id', user.id)
     .maybeSingle();
   if (error) throw error;
   if (!data) throw new ErroHttp(403, 'sem_permissao', 'Acesso permitido só para compradores.');
   if (data.status_acesso !== 'ativo') {
     throw new ErroHttp(403, 'sem_permissao', 'Seu acesso está bloqueado. Fale com a imobiliária.');
+  }
+  // com a senha provisória ainda não trocada, nada além de conta-definir-senha (mesma regra da RLS)
+  if (data.deve_trocar_senha) {
+    throw new ErroHttp(403, 'sem_permissao', 'Crie sua senha no app antes de continuar.');
   }
   return data as CompradorAtual;
 }
@@ -90,4 +94,17 @@ export async function registrarAuditoria(
     dados,
   });
   if (error) console.error('audit_log', error);
+}
+
+/** Procura um usuário do Auth pelo e-mail (para reaproveitar logins que sobraram). */
+export async function buscarUsuarioPorEmail(db: Admin, email: string): Promise<string | null> {
+  const alvo = email.toLowerCase();
+  for (let page = 1; page <= 50; page++) {
+    const { data, error } = await db.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw error;
+    const achado = data.users.find((u) => u.email?.toLowerCase() === alvo);
+    if (achado) return achado.id;
+    if (data.users.length < 1000) return null;
+  }
+  return null;
 }

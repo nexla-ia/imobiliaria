@@ -9,11 +9,11 @@ export async function enviarPush(
   if (compradorIds.length === 0) return 0;
 
   const tokens: Array<{ id: string; expo_token: string }> = [];
-  for (let i = 0; i < compradorIds.length; i += 500) {
+  for (let i = 0; i < compradorIds.length; i += 150) {
     const { data, error } = await db
       .from('push_tokens')
       .select('id, expo_token')
-      .in('comprador_id', compradorIds.slice(i, i + 500))
+      .in('comprador_id', compradorIds.slice(i, i + 150))
       .eq('ativo', true);
     if (error) throw error;
     tokens.push(...(data ?? []));

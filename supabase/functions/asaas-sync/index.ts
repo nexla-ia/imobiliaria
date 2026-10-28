@@ -9,9 +9,11 @@ import { criarClienteAsaas } from '../_shared/asaas.ts';
 import { sincronizarComprador, type CompradorSync } from '../_shared/cobrancas.ts';
 import { ErroHttp, json, servir } from '../_shared/http.ts';
 import { admin, chamadaDoCron, exigirEquipe } from '../_shared/supabase.ts';
+import { type EventoAsaas, processarEvento } from '../_shared/webhook.ts';
 
 const ORCAMENTO_MS = 110_000;
-const INTERVALO_MINIMO_HORAS = 20;
+// quem foi sincronizado à mão durante o dia ainda entra na rodada da madrugada
+const INTERVALO_MINIMO_HORAS = 6;
 
 servir(async (req) => {
   const inicio = Date.now();
@@ -64,7 +66,23 @@ servir(async (req) => {
   }
 
   const asaas = criarClienteAsaas();
-  const resultado = { compradores: 0, contratos: 0, cobrancas: 0, erros: [] as string[], pendentes: 0 };
+  const resultado = { compradores: 0, contratos: 0, cobrancas: 0, erros: [] as string[], pendentes: 0, eventos_reprocessados: 0 };
+
+  // cron: eventos do webhook gravados e não processados (a função caiu no meio)
+  if (doCron) {
+    const dezMinAtras = new Date(Date.now() - 10 * 60_000).toISOString();
+    const { data: pendentes } = await db
+      .from('asaas_webhook_eventos')
+      .select('id, payload, created_at')
+      .is('processado_em', null)
+      .lt('created_at', dezMinAtras)
+      .order('created_at')
+      .limit(100);
+    for (const ev of pendentes ?? []) {
+      await processarEvento(db, ev.id, ev.payload as EventoAsaas, ev.created_at);
+      resultado.eventos_reprocessados++;
+    }
+  }
   for (const [i, comprador] of fila.entries()) {
     if (Date.now() - inicio > ORCAMENTO_MS) {
       resultado.pendentes = fila.length - i;

@@ -19,12 +19,17 @@ export async function cobrancaPagavel(db: Admin, comprador: CompradorAtual, cobr
   }
   const { data, error } = await db
     .from('cobrancas')
-    .select('id, asaas_payment_id, empresa_id, comprador_id, contrato_id, status_app, removida')
+    .select('id, asaas_payment_id, empresa_id, comprador_id, contrato_id, status_app, removida, contratos(status), empresas(mostrar_cobrancas_avulsas)')
     .eq('id', cobrancaId)
     .eq('comprador_id', comprador.id)
     .maybeSingle();
   if (error) throw error;
-  if (!data || data.removida) throw new ErroHttp(404, 'nao_encontrado', 'Parcela não encontrada.');
+  // mesma regra da RLS: contrato cancelado e avulsa escondida não existem para o comprador
+  const contrato = data?.contratos as { status?: string } | null | undefined;
+  const empresa = data?.empresas as { mostrar_cobrancas_avulsas?: boolean } | null | undefined;
+  const visivel = data && !data.removida &&
+    (data.contrato_id ? contrato?.status !== 'cancelado' : !!empresa?.mostrar_cobrancas_avulsas);
+  if (!visivel) throw new ErroHttp(404, 'nao_encontrado', 'Parcela não encontrada.');
   if (data.status_app !== 'em_aberto' && data.status_app !== 'vencida') {
     throw new ErroHttp(409, 'requisicao_invalida', 'Esta parcela não está em aberto.');
   }
@@ -32,12 +37,12 @@ export async function cobrancaPagavel(db: Admin, comprador: CompradorAtual, cobr
 }
 
 /** Atualiza o cache com a versão recém-buscada no Asaas (status pode ter mudado). */
-export async function atualizarCache(db: Admin, cobranca: CobrancaDoComprador, p: AsaasPayment) {
+export async function atualizarCache(db: Admin, cobranca: CobrancaDoComprador, p: AsaasPayment, lidoEm: string) {
   try {
     await gravarCobrancas(db, [{
       payment: p,
       vinculo: { empresa_id: cobranca.empresa_id, comprador_id: cobranca.comprador_id, contrato_id: cobranca.contrato_id },
-    }]);
+    }], { lidoEm });
   } catch (e) {
     console.error('falha ao atualizar cache da cobrança', cobranca.id, e);
   }

@@ -45,7 +45,10 @@ export function servir(handler: (req: Request) => Promise<Response>) {
 }
 
 export function ipDaRequisicao(req: Request): string {
-  return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'desconhecido';
+  // Testado em 2026-10-28: cf-connecting-ip traz o IP real e a Cloudflare recusa quem tenta forjá-lo.
+  // O X-Forwarded-For chega como "cliente, cliente, proxy-do-supabase": o primeiro item o cliente
+  // pode inventar e o último é o mesmo para todo mundo, então só serve de reserva.
+  return req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'desconhecido';
 }
 
 /** Comparação em tempo constante para tokens e segredos. */

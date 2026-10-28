@@ -2,6 +2,7 @@
  * App: no primeiro acesso com a senha provisória, o comprador cria a senha dele
  * (e aceita os termos, se ainda não aceitou). Só depois disso a RLS libera os dados.
  */
+import { createClient } from 'npm:@supabase/supabase-js@2.118.0';
 import { ErroHttp, json, lerCorpo, servir } from '../_shared/http.ts';
 import { admin, exigirUsuario } from '../_shared/supabase.ts';
 
@@ -25,6 +26,19 @@ servir(async (req) => {
   if (typeof senha !== 'string' || senha.length < 8 || senha.length > 72) {
     throw new ErroHttp(400, 'senha_fraca', 'A senha precisa ter de 8 a 72 caracteres.');
   }
+  // A provisória não fica guardada: se a senha escolhida já entra, é igual à provisória
+  // (que passou pelo WhatsApp) e não pode virar a senha definitiva.
+  if (user.email) {
+    const anonimo = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: entrou } = await anonimo.auth.signInWithPassword({ email: user.email, password: senha });
+    if (entrou.session) {
+      await anonimo.auth.signOut({ scope: 'local' });
+      throw new ErroHttp(400, 'senha_fraca', 'Escolha uma senha diferente da provisória.');
+    }
+  }
+
   if (!comprador.termos_aceitos_em && aceitou_termos !== true) {
     throw new ErroHttp(400, 'termos_obrigatorios', 'Para continuar, aceite os Termos de uso e a Política de privacidade.');
   }

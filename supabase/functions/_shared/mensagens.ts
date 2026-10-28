@@ -31,7 +31,8 @@ export async function enviarWhatsapp(telefone: string, texto: string): Promise<v
     headers: { 'Content-Type': 'application/json', apikey: Deno.env.get('EVOLUTION_API_KEY')! },
     body: JSON.stringify({ number: numero, text: texto }),
   });
-  if (!resp.ok) throw new Error(`Evolution API respondeu ${resp.status}: ${await resp.text()}`);
+  // o corpo da resposta pode repetir a mensagem enviada (senha/código): não vai para o log
+  if (!resp.ok) throw new Error(`Evolution API respondeu ${resp.status}`);
 }
 
 export async function enviarEmail(para: string, assunto: string, texto: string): Promise<void> {
@@ -40,5 +41,5 @@ export async function enviarEmail(para: string, assunto: string, texto: string):
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${Deno.env.get('RESEND_API_KEY')}` },
     body: JSON.stringify({ from: Deno.env.get('EMAIL_REMETENTE'), to: [para], subject: assunto, text: texto }),
   });
-  if (!resp.ok) throw new Error(`Resend respondeu ${resp.status}: ${await resp.text()}`);
+  if (!resp.ok) throw new Error(`Resend respondeu ${resp.status}`);
 }

@@ -38,7 +38,17 @@ servir(async (req) => {
   if (erroLimite) throw erroLimite;
   if (!ok) throw new ErroHttp(429, 'muitas_tentativas', 'Muitas tentativas. Aguarde um pouco e tente de novo.');
 
-  const invalido = () => new ErroHttp(400, 'codigo_invalido', 'Código incorreto. Confira e tente de novo.');
+  // CPF inexistente, código vencido e tentativas esgotadas dão a mesma resposta:
+  // assim a validação não revela se o CPF é cliente.
+  const invalido = () => new ErroHttp(400, 'codigo_invalido', 'Código incorreto ou vencido. Confira ou peça um novo código.');
+
+  const { data: dentroCpf, error: erroCpf } = await db.rpc('rate_limit_registrar', {
+    p_chave: `validar:cpf:${slug}:${cpf}`,
+    p_janela_segundos: 3600,
+    p_limite: 10,
+  });
+  if (erroCpf) throw erroCpf;
+  if (!dentroCpf) throw new ErroHttp(429, 'muitas_tentativas', 'Muitas tentativas. Aguarde um pouco e tente de novo.');
 
   const { data: empresa } = await db.from('empresas').select('id, slug').eq('slug', slug).maybeSingle();
   if (!empresa) throw invalido();
@@ -58,17 +68,12 @@ servir(async (req) => {
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (!registro) throw invalido();
-  if (registro.tentativas >= MAX_TENTATIVAS) {
-    throw new ErroHttp(429, 'muitas_tentativas', 'Você errou o código muitas vezes. Peça um novo código.');
-  }
-  if (new Date(registro.expira_em) < new Date()) {
-    throw new ErroHttp(400, 'codigo_expirado', 'Este código expirou. Peça um novo código.');
-  }
-  if (!iguaisSeguro(await hashCodigo(comprador.id, codigo), registro.codigo_hash)) {
-    await db.from('codigos_acesso').update({ tentativas: registro.tentativas + 1 }).eq('id', registro.id);
-    throw invalido();
-  }
+  if (!registro || new Date(registro.expira_em) < new Date()) throw invalido();
+  // conta a tentativa ANTES de comparar e de forma atômica: chamadas em paralelo não furam o limite
+  const { data: tentativa, error: erroTentativa } = await db.rpc('codigo_registrar_tentativa', { p_id: registro.id });
+  if (erroTentativa) throw erroTentativa;
+  if ((tentativa as number) > MAX_TENTATIVAS) throw invalido();
+  if (!iguaisSeguro(await hashCodigo(comprador.id, codigo), registro.codigo_hash)) throw invalido();
 
   if (!comprador.termos_aceitos_em && corpo.aceitou_termos !== true) {
     throw new ErroHttp(400, 'termos_obrigatorios', 'Para continuar, aceite os Termos de uso e a Política de privacidade.');
@@ -77,7 +82,8 @@ servir(async (req) => {
   const email = emailDoComprador(cpf, empresa.slug);
   let authUserId = comprador.auth_user_id as string | null;
   if (authUserId) {
-    const { error } = await db.auth.admin.updateUserById(authUserId, { password: senha });
+    // e-mail junto: se o CPF foi corrigido no painel, o login segue o CPF atual
+    const { error } = await db.auth.admin.updateUserById(authUserId, { password: senha, email, email_confirm: true });
     if (error) throw error;
   } else {
     const { data, error } = await db.auth.admin.createUser({

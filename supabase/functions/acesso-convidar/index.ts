@@ -10,7 +10,7 @@
 import { emailDoComprador } from '../_shared/codigo.ts';
 import { ErroHttp, json, lerCorpo, servir } from '../_shared/http.ts';
 import { canaisDisponiveis, enviarWhatsapp, normalizarTelefone } from '../_shared/mensagens.ts';
-import { admin, exigirEquipe, registrarAuditoria } from '../_shared/supabase.ts';
+import { admin, buscarUsuarioPorEmail, exigirEquipe, registrarAuditoria } from '../_shared/supabase.ts';
 
 const VALIDADE_DIAS = 30;
 // sem 0/O, 1/I/L, para ninguém confundir ao digitar
@@ -44,20 +44,23 @@ servir(async (req) => {
   }
 
   const senha = gerarSenha();
+  const email = emailDoComprador(comprador.cpf, empresa.slug);
   let authUserId = comprador.auth_user_id as string | null;
-  if (authUserId) {
-    const { error } = await db.auth.admin.updateUserById(authUserId, { password: senha });
-    if (error) throw error;
-  } else {
+  if (!authUserId) {
     const { data, error } = await db.auth.admin.createUser({
-      email: emailDoComprador(comprador.cpf, empresa.slug),
+      email,
       password: senha,
       email_confirm: true,
       app_metadata: { papel: 'comprador', comprador_id: comprador.id, empresa_id: equipe.empresa_id },
     });
-    if (error) throw error;
-    authUserId = data.user.id;
+    if (error && !/already|registered|exists/i.test(error.message)) throw error;
+    // login que sobrou de uma exclusão incompleta: reaproveita
+    authUserId = data?.user?.id ?? (await buscarUsuarioPorEmail(db, email));
+    if (!authUserId) throw error ?? new Error('não foi possível criar o login');
   }
+  // senha e e-mail juntos: se o CPF foi corrigido no painel, o login segue o CPF atual
+  const { error: erroSenha } = await db.auth.admin.updateUserById(authUserId, { password: senha, email, email_confirm: true });
+  if (erroSenha) throw erroSenha;
 
   const expira = new Date(Date.now() + VALIDADE_DIAS * 86_400_000);
   const { error: erroComprador } = await db

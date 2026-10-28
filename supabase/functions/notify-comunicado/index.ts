@@ -21,26 +21,36 @@ servir(async (req) => {
   if (comunicado.alvo === 'comprador') {
     compradorIds = [comunicado.alvo_id];
   } else {
-    let consulta = db
-      .from('contratos')
-      .select('comprador_id, imoveis!inner(empreendimento_id)')
-      .eq('empresa_id', equipe.empresa_id)
-      .neq('status', 'cancelado');
-    if (comunicado.alvo === 'empreendimento') consulta = consulta.eq('imoveis.empreendimento_id', comunicado.alvo_id);
-    const { data, error } = await consulta;
-    if (error) throw error;
-    compradorIds = [...new Set((data ?? []).map((c) => c.comprador_id))];
+    // a API devolve no máximo 1000 linhas por vez: pagina até o fim
+    const ids = new Set<string>();
+    for (let de = 0; ; de += 1000) {
+      let consulta = db
+        .from('contratos')
+        .select('comprador_id, imoveis!inner(empreendimento_id)')
+        .eq('empresa_id', equipe.empresa_id)
+        .neq('status', 'cancelado')
+        .order('id')
+        .range(de, de + 999);
+      if (comunicado.alvo === 'empreendimento') consulta = consulta.eq('imoveis.empreendimento_id', comunicado.alvo_id);
+      const { data, error } = await consulta;
+      if (error) throw error;
+      for (const c of data ?? []) ids.add(c.comprador_id);
+      if ((data ?? []).length < 1000) break;
+    }
+    compradorIds = [...ids];
   }
 
   // só quem já ativou o app recebe; a notificação fica na central dele
   const ativos: string[] = [];
-  for (let i = 0; i < compradorIds.length; i += 500) {
-    const { data } = await db
+  for (let i = 0; i < compradorIds.length; i += 150) {
+    const { data, error } = await db
       .from('compradores')
       .select('id')
       .eq('empresa_id', equipe.empresa_id)
       .eq('status_acesso', 'ativo')
-      .in('id', compradorIds.slice(i, i + 500));
+      .eq('deve_trocar_senha', false)
+      .in('id', compradorIds.slice(i, i + 150));
+    if (error) throw error;
     ativos.push(...(data ?? []).map((c) => c.id));
   }
 
