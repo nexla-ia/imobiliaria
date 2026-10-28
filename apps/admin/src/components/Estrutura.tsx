@@ -69,7 +69,7 @@ export function Estrutura() {
             Ambiente de testes: o Asaas está no modo sandbox. Nenhum pagamento é real.
           </div>
         )}
-        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-8">
+        <main className="max-w-[1600px] px-4 py-8 sm:px-8">
           <Outlet />
         </main>
       </div>
