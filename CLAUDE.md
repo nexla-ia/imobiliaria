@@ -111,6 +111,7 @@ Gerenciador: **pnpm workspaces** (`corepack enable` ou `npm i -g pnpm`; sem inst
 | Painel | `pnpm admin` | precisa de `.env.local` na raiz (ver `.env.example`) |
 | App | `pnpm mobile` | precisa de `apps/mobile/.env`; push só em development build (`eas build --profile development`), não no Expo Go |
 | Edge Functions (checagem) | `npx deno@2.9.6 check supabase/functions/*/index.ts` | rodar dentro de `supabase/functions` |
+| Bateria de testes do sistema | ver `supabase/testes/README.md` | só contra o ambiente de desenvolvimento (sandbox) |
 | Banco local | `supabase start` + `supabase db reset` | precisa de Docker |
 
 Ao mexer no app, siga `apps/mobile/AGENTS.md`: o Expo muda API a cada SDK, então confira a doc da versão 58 antes de usar um módulo.
@@ -367,6 +368,49 @@ Senha provisória e importação em lote testadas em 2026-10-28 no servidor real
 - Senha vencida é recusada.
 - No app (Pixel 5), a tela "Crie sua senha" aparece e em seguida o Início, com as 12 parcelas.
 
+**Bateria de testes e revisão de código (2026-10-28):** `supabase/testes/` (3 scripts, 119 verificações contra o backend de desenvolvimento) e revisão independente do backend, do app e do painel.
+
+Bugs reais encontrados e corrigidos:
+- **Senha provisória:** com ela ainda não trocada dava para pegar boleto/Pix e **excluir a conta** (`exigirComprador` não olhava `deve_trocar_senha`). Também dava para "definir" a própria provisória como senha.
+- **Código de acesso:** chamadas em paralelo furavam o limite de 5 tentativas. Agora a contagem é atômica antes de comparar, com limite de 10 por CPF/hora. A resposta não diferencia código vencido, esgotado ou CPF inexistente.
+- **IP do limite:** o IP vinha de um header que o cliente pode forjar. Agora usa `cf-connecting-ip`, confirmado por sondagem: o último item do X-Forwarded-For é o proxy do Supabase, igual para todos.
+- **Sincronização:**
+  - passou a ser por parcelamento, o que resolve CPF com dois cadastros no Asaas;
+  - não regride parcela paga por leitura antiga (`lidoEm`);
+  - remove IDs duplicados;
+  - atualiza `numero_parcelas`.
+- **Contrato cancelado:** sumia só no sync seguinte, ainda gerava boleto e notificações e não podia ser religado. Ajustados RLS, índice parcial, webhook, `asaas-boleto`/`asaas-pix` e o botão "Reativar contrato" no painel.
+- **Valores:** "Total pago" e "Recebido no mês" usavam o valor original e não o pago. No Asaas, `value` de cobrança paga com juros é o valor pago. "Recebido no mês" agora é a RPC `recebido_no_mes()`.
+- **Escala:**
+  - comunicado "para todos" e listas do painel cortavam em 1000 linhas;
+  - limite de consultas ao Asaas por comprador (20/min);
+  - eventos de webhook gravados e não processados são reprocessados pelo cron.
+- **Permissões:** admin podia mudar `slug`/`asaas_ambiente`, agora com grant por coluna. Operador podia trocar a logo. A senha mínima do Auth era 6, agora 8.
+- **App:**
+  - erro de rede aparecia como "conta excluída";
+  - os dados não recarregavam ao voltar do segundo plano;
+  - o teclado cobria o botão "Entrar" no Android;
+  - o cache não era limpo ao sair;
+  - notificação reaberta ao entrar de novo;
+  - contraste AA das etiquetas;
+  - erros de carga apareciam como lista vazia.
+- **Painel:**
+  - Esc travava a importação;
+  - comunicado duplicava ao tentar de novo;
+  - a carteira contava como "App ativo" quem só tinha senha provisória;
+  - metragem "360.5" virava 3605;
+  - cadastro duplicado ao tentar de novo;
+  - clique duplo em confirmações;
+  - arquivo órfão quando o cadastro falhava;
+  - membro removido não podia voltar à equipe.
+
+Conhecido e deixado para depois (registrado para não esquecer):
+- **Integridade multi-empresa:** faltam FKs compostas `(empresa_id, id)` entre contrato, comprador e imóvel. Só importa quando entrar a 2ª imobiliária.
+- **Comprador PJ (CNPJ):** não entra no app. Confirmar com a cliente se existe esse caso.
+- **Textos secundários de 14px** (etiquetas, horários, legendas) e rótulos das abas de 12px, abaixo dos 16px da seção 8. O corpo segue em 16px+, e as abas não aumentam com a fonte do sistema.
+- **`trocar_senha` da equipe** fica em `user_metadata` (a própria pessoa poderia desligar). O risco é baixo, porque só afeta quem já é da equipe.
+- **Build EAS:** cadastrar as variáveis `EXPO_PUBLIC_*` no EAS (`eas env:create`), porque o `.env` não sobe para o build.
+
 Ainda não testado:
 - o envio automático do código (falta a Evolution API, agora opcional);
 - push num aparelho (falta o projeto EAS e uma development build);
@@ -451,4 +495,5 @@ Construir pensando em **reaproveitar para outras imobiliárias/loteadoras**:
   - O código automático por WhatsApp/e-mail continua implementado e passa a valer quando a Evolution/Resend forem configuradas: `auth-solicitar-codigo` devolve `automatico`. Sem envio automático, "Primeiro acesso / Esqueci a senha" no app orienta a pedir a senha à imobiliária pelo WhatsApp.
   - Importação em lote: `asaas-importar-clientes` e `imoveis.revisar`; o `asaas-sync` ganhou o modo `{ pendentes: true }`. Migration `20261028120000`.
 - 2026-10-28 — Painel publicado na Vercel: **https://imobiliaria-alpha-one.vercel.app** (repositório `github.com/nexla-ia/imobiliaria`, Root Directory `apps/admin`, variáveis `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY`). No Supabase Auth, `site_url` = esse endereço e redirects liberados para ele e para `http://localhost:5173/**` (link de "Esqueci minha senha" do painel).
+- 2026-10-28 — Correções da bateria de testes e da revisão: migration `20261028140000_correcoes_da_revisao.sql` e `_shared/webhook.ts` (processamento comum ao webhook e ao reprocessamento do cron). Detalhes na seção 10.
 - 2026-10-27 — Nos arquivos `.env`, a chave do Asaas fica **entre aspas simples** (`ASAAS_API_KEY='$aact_…'`): ela começa com `$`, e sem aspas o shell e o leitor de `.env` do Supabase CLI a expandem como variável (vira vazio e o Asaas responde 401). Os outros segredos das functions (`ASAAS_WEBHOOK_TOKEN`, `CRON_SECRET`, `CODIGO_PEPPER`) foram gerados aleatoriamente no `supabase/functions/.env`.
