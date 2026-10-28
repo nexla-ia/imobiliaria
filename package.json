@@ -1,0 +1,23 @@
+{
+  "name": "planejar-app",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "mobile": "pnpm --filter @planejar/mobile start",
+    "admin": "pnpm --filter @planejar/admin dev",
+    "typecheck": "pnpm -r typecheck",
+    "db:start": "supabase start",
+    "db:reset": "supabase db reset",
+    "db:types": "supabase gen types typescript --local > packages/shared/src/database.types.ts",
+    "functions:serve": "supabase functions serve --env-file supabase/functions/.env"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "react": "19.3.0",
+      "react-dom": "19.3.0"
+    }
+  }
+}

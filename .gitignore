@@ -1,0 +1,26 @@
+node_modules/
+dist/
+build/
+.expo/
+.vercel/
+*.log
+.DS_Store
+Thumbs.db
+
+# Segredos: nunca versionar
+.env
+.env.*
+!.env.example
+supabase/functions/.env*
+!supabase/functions/.env.example
+supabase/.temp/
+supabase/.branches/
+
+# Builds nativos gerados pelo Expo prebuild / EAS
+apps/mobile/android/
+apps/mobile/ios/
+*.keystore
+*.jks
+*.p8
+*.p12
+*.mobileprovision
