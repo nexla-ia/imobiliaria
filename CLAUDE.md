@@ -111,6 +111,7 @@ Gerenciador: **pnpm workspaces** (`corepack enable` ou `npm i -g pnpm`; sem inst
 | Painel | `pnpm admin` | precisa de `.env.local` na raiz (ver `.env.example`) |
 | App | `pnpm mobile` | precisa de `apps/mobile/.env`; push só em development build (`eas build --profile development`), não no Expo Go |
 | Edge Functions (checagem) | `npx deno@2.9.6 check supabase/functions/*/index.ts` | rodar dentro de `supabase/functions` |
+| Testes unitários | `npx deno@2.9.6 test -A --config supabase/functions/deno.json supabase/testes/unitarios.test.ts` | sem rede nem senha |
 | Bateria de testes do sistema | ver `supabase/testes/README.md` | só contra o ambiente de desenvolvimento (sandbox) |
 | Banco local | `supabase start` + `supabase db reset` | precisa de Docker |
 
@@ -410,6 +411,27 @@ Conhecido e deixado para depois (registrado para não esquecer):
 - **Textos secundários de 14px** (etiquetas, horários, legendas) e rótulos das abas de 12px, abaixo dos 16px da seção 8. O corpo segue em 16px+, e as abas não aumentam com a fonte do sistema.
 - **`trocar_senha` da equipe** fica em `user_metadata` (a própria pessoa poderia desligar). O risco é baixo, porque só afeta quem já é da equipe.
 - **Build EAS:** cadastrar as variáveis `EXPO_PUBLIC_*` no EAS (`eas env:create`), porque o `.env` não sobe para o build.
+
+**Segunda bateria (2026-10-28):** 16 testes unitários, parte 4 dos scripts (35 verificações), painel no Chrome automatizado (20) e o app no emulador.
+- Servidor:
+  - status do Asaas: o banco e o app classificam os 13 status iguais;
+  - aviso de 3 dias e do dia criado, sem duplicar;
+  - recebimento desfeito e refeito no Asaas volta pelo webhook sem repetir o push;
+  - evento de webhook perdido reprocessado pelo cron;
+  - documento de um comprador fechado para outro e para anônimo;
+  - operador não troca a logo;
+  - membro removido volta à equipe;
+  - limite de boleto/Pix funcionando.
+- Painel:
+  - Esc não interrompe a importação, e importar de novo não duplica;
+  - cancelar e reativar contrato;
+  - metragem "360,5" e "1.250,75";
+  - CSV com BOM, `;` e CPF formatado;
+  - adicionar, remover e adicionar de novo a mesma pessoa;
+  - salvar configurações.
+- App: a central mostra os avisos, o toque abre Boleto/Pix da parcela e marca como lida, e senha atual errada é recusada.
+- Bug corrigido: o link do WhatsApp (`linkWhatsapp`) ia sem o 55 quando o número estava cadastrado só com DDD, e o wa.me não abria a conversa.
+- Observação: no Expo Go, o botão flutuante de desenvolvedor fica em cima do sino de notificações. Não existe no app das lojas.
 
 Ainda não testado:
 - o envio automático do código (falta a Evolution API, agora opcional);

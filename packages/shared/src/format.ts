@@ -52,5 +52,8 @@ export function diasAte(isoDate: string, hoje: Date = new Date()): number {
 
 /** Link do WhatsApp com mensagem pré-preenchida. */
 export function linkWhatsapp(numero: string, mensagem: string): string {
-  return `https://wa.me/${somenteDigitos(numero)}?text=${encodeURIComponent(mensagem)}`;
+  const d = somenteDigitos(numero);
+  // o wa.me exige o DDI: número brasileiro sem o 55 (DDD + 8 ou 9 dígitos) ganha o 55
+  const comDdi = d.length === 10 || d.length === 11 ? `55${d}` : d;
+  return `https://wa.me/${comDdi}?text=${encodeURIComponent(mensagem)}`;
 }
