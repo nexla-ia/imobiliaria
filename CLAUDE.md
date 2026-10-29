@@ -433,6 +433,16 @@ Conhecido e deixado para depois (registrado para não esquecer):
 - Bug corrigido: o link do WhatsApp (`linkWhatsapp`) ia sem o 55 quando o número estava cadastrado só com DDD, e o wa.me não abria a conversa.
 - Observação: no Expo Go, o botão flutuante de desenvolvedor fica em cima do sino de notificações. Não existe no app das lojas.
 
+**Produção (2026-10-29):** o projeto `boxxebvhyhtmgbqwfjji` passou a ser o de produção, por decisão da equipe.
+- Secrets `ASAAS_API_KEY` e `ASAAS_AMBIENTE=producao` trocados; `empresas.asaas_ambiente = 'producao'`.
+- A busca no Asaas já responde pela conta de produção: 128 clientes e 214 parcelamentos.
+- Dados de teste apagados: compradores, imóveis, empreendimento TESTE, cobranças, arquivos, logins e auditoria. Ficaram a empresa, as configurações e o admin `alisson@gmail.com`. Antes de apagar, foi feito um backup local fora do repositório.
+- **Falta:**
+  - criar o webhook na conta Asaas de produção;
+  - desligar o webhook do sandbox (`15332dc3-…`), que ainda aponta para este projeto.
+- Não existe mais ambiente de desenvolvimento. A bateria de `supabase/testes/` **não** pode rodar contra este projeto: ela cria e apaga dados e mexe em cobranças. Para voltar a testar, criar outro projeto Supabase ligado ao sandbox.
+- Os valores locais de `supabase/functions/.env.production` são os mesmos que estão no servidor, inclusive `CRON_SECRET`, que também fica no Vault.
+
 Ainda não testado:
 - o envio automático do código (falta a Evolution API, agora opcional);
 - push num aparelho (falta o projeto EAS e uma development build);
@@ -444,7 +454,7 @@ Ainda não testado:
 
 - [x] Chave de API do Asaas de **produção** — recebida em 2026-10-23, guardada em `supabase/functions/.env.production` (fora do git)
 - [x] Chave de API do Asaas de **sandbox** — recebida em 2026-10-27, guardada em `supabase/functions/.env` (fora do git). Conta sandbox: "PLANEJAR ASSESSORIA URBANO E RURAL"
-- [ ] **Chave Pix cadastrada na conta Asaas de produção** (sem ela o botão Pix do app não funciona)
+- [x] **Chave Pix cadastrada na conta Asaas de produção** — conferido em 2026-10-29: uma chave ativa
 - [x] Acesso ao projeto Supabase `boxxebvhyhtmgbqwfjji` — senha do banco e token de acesso (expira em 7 dias, criado em 2026-10-27) recebidos; ambiente configurado. Trocar a senha do banco depois, porque ela passou pela conversa.
 - [x] Primeiro administrador do painel: `alisson@gmail.com` ("Alisson", papel `admin`), ligado em `usuarios_admin` em 2026-10-27. Novos membros entram pelo próprio painel (Configurações → Equipe).
 - [x] Logo e cores — recebidas em 2026-10-23 (PNG). Falta: arquivo vetorial e nome do app nas lojas
@@ -518,4 +528,5 @@ Construir pensando em **reaproveitar para outras imobiliárias/loteadoras**:
   - Importação em lote: `asaas-importar-clientes` e `imoveis.revisar`; o `asaas-sync` ganhou o modo `{ pendentes: true }`. Migration `20261028120000`.
 - 2026-10-28 — Painel publicado na Vercel: **https://imobiliaria-alpha-one.vercel.app** (repositório `github.com/nexla-ia/imobiliaria`, Root Directory `apps/admin`, variáveis `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY`). No Supabase Auth, `site_url` = esse endereço e redirects liberados para ele e para `http://localhost:5173/**` (link de "Esqueci minha senha" do painel).
 - 2026-10-28 — Correções da bateria de testes e da revisão: migration `20261028140000_correcoes_da_revisao.sql` e `_shared/webhook.ts` (processamento comum ao webhook e ao reprocessamento do cron). Detalhes na seção 10.
+- 2026-10-29 — O projeto Supabase `boxxebvhyhtmgbqwfjji` vira o de **produção**, com a chave atual de produção (a equipe preferiu não gerar outra agora). Dados de teste apagados. Ver "Produção" na seção 10. Atenção: ele continua no plano Free, que pausa o projeto após 7 dias sem uso.
 - 2026-10-27 — Nos arquivos `.env`, a chave do Asaas fica **entre aspas simples** (`ASAAS_API_KEY='$aact_…'`): ela começa com `$`, e sem aspas o shell e o leitor de `.env` do Supabase CLI a expandem como variável (vira vazio e o Asaas responde 401). Os outros segredos das functions (`ASAAS_WEBHOOK_TOKEN`, `CRON_SECRET`, `CODIGO_PEPPER`) foram gerados aleatoriamente no `supabase/functions/.env`.

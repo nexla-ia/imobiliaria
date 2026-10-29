@@ -10,6 +10,8 @@ npx deno@2.9.6 test -A --config supabase/functions/deno.json supabase/testes/uni
 
 ## Testes de ponta a ponta
 
+> **Desde 2026-10-29, o projeto `boxxebvhyhtmgbqwfjji` é produção.** Não rode as partes 1 a 4 contra ele. Elas precisam de um projeto Supabase separado, ligado ao Asaas sandbox, com os compradores de teste cadastrados.
+
 Testes de ponta a ponta contra o projeto Supabase de **desenvolvimento** (Asaas sandbox). Não rodar contra produção: os testes criam e apagam dados, removem e restauram parcelas no sandbox e excluem e reativam a conta da compradora de teste.
 
 Pré-requisitos (dados de teste descritos no CLAUDE.md, seção 10):
