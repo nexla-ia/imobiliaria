@@ -13,9 +13,10 @@ import { type EventoAsaas, processarEvento } from '../_shared/webhook.ts';
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response('método não permitido', { status: 405 });
 
-  const esperado = Deno.env.get('ASAAS_WEBHOOK_TOKEN');
+  // aceita mais de um token separado por vírgula, para trocar o token no Asaas sem perder eventos
+  const aceitos = (Deno.env.get('ASAAS_WEBHOOK_TOKEN') ?? '').split(',').map((t) => t.trim()).filter(Boolean);
   const recebido = req.headers.get('asaas-access-token') ?? '';
-  if (!esperado || !iguaisSeguro(recebido, esperado)) return new Response('não autorizado', { status: 401 });
+  if (!aceitos.some((t) => iguaisSeguro(recebido, t))) return new Response('não autorizado', { status: 401 });
 
   let evento: EventoAsaas;
   try {

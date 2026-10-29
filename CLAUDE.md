@@ -437,9 +437,10 @@ Conhecido e deixado para depois (registrado para não esquecer):
 - Secrets `ASAAS_API_KEY` e `ASAAS_AMBIENTE=producao` trocados; `empresas.asaas_ambiente = 'producao'`.
 - A busca no Asaas já responde pela conta de produção: 128 clientes e 214 parcelamentos.
 - Dados de teste apagados: compradores, imóveis, empreendimento TESTE, cobranças, arquivos, logins e auditoria. Ficaram a empresa, as configurações e o admin `alisson@gmail.com`. Antes de apagar, foi feito um backup local fora do repositório.
-- **Falta:**
-  - criar o webhook na conta Asaas de produção;
-  - desligar o webhook do sandbox (`15332dc3-…`), que ainda aponta para este projeto.
+- Webhook de produção criado pela cliente ("NEXLA", 31 eventos de cobrança; os que o sistema não usa são ignorados).
+  - `ASAAS_WEBHOOK_TOKEN` aceita mais de um token separado por vírgula. Hoje aceita o `whsec_…` gerado no Asaas e o token antigo.
+  - Para trocar o token, ponha o novo na lista, troque no Asaas e depois tire o antigo.
+- **Falta:** desligar o webhook do sandbox (`15332dc3-…`), que ainda aponta para este projeto.
 - Não existe mais ambiente de desenvolvimento. A bateria de `supabase/testes/` **não** pode rodar contra este projeto: ela cria e apaga dados e mexe em cobranças. Para voltar a testar, criar outro projeto Supabase ligado ao sandbox.
 - Os valores locais de `supabase/functions/.env.production` são os mesmos que estão no servidor, inclusive `CRON_SECRET`, que também fica no Vault.
 
