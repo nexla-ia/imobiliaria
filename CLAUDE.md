@@ -530,4 +530,9 @@ Construir pensando em **reaproveitar para outras imobiliárias/loteadoras**:
 - 2026-10-28 — Painel publicado na Vercel: **https://imobiliaria-alpha-one.vercel.app** (repositório `github.com/nexla-ia/imobiliaria`, Root Directory `apps/admin`, variáveis `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY`). No Supabase Auth, `site_url` = esse endereço e redirects liberados para ele e para `http://localhost:5173/**` (link de "Esqueci minha senha" do painel).
 - 2026-10-28 — Correções da bateria de testes e da revisão: migration `20261028140000_correcoes_da_revisao.sql` e `_shared/webhook.ts` (processamento comum ao webhook e ao reprocessamento do cron). Detalhes na seção 10.
 - 2026-10-29 — O projeto Supabase `boxxebvhyhtmgbqwfjji` vira o de **produção**, com a chave atual de produção (a equipe preferiu não gerar outra agora). Dados de teste apagados. Ver "Produção" na seção 10. Atenção: ele continua no plano Free, que pausa o projeto após 7 dias sem uso.
+- 2026-11-03 — Carteira do painel com valores, a pedido da equipe:
+  - cards de A receber, Em atraso (R$ e % do saldo), Previsto no mês (com quanto já foi pago) e Próximos 30 dias;
+  - previsão de recebimento dos próximos 6 meses e um resumo (recebido no mês, total recebido, contratos, app);
+  - funções SQL `resumo_carteira()` e `previsao_recebimento()` (migration `20261103120000`), que só somam o `valor` do Asaas e respeitam a RLS;
+  - o filtro de empreendimento fica no topo e vale para tudo.
 - 2026-10-27 — Nos arquivos `.env`, a chave do Asaas fica **entre aspas simples** (`ASAAS_API_KEY='$aact_…'`): ela começa com `$`, e sem aspas o shell e o leitor de `.env` do Supabase CLI a expandem como variável (vira vazio e o Asaas responde 401). Os outros segredos das functions (`ASAAS_WEBHOOK_TOKEN`, `CRON_SECRET`, `CODIGO_PEPPER`) foram gerados aleatoriamente no `supabase/functions/.env`.

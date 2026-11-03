@@ -28,6 +28,8 @@ type MesPrevisto = { mes: string; valor: number; parcelas: number };
 
 const NOMES_MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 /** "2026-11-01" → "nov/2026" (sem passar por Date, para não depender do fuso do navegador). */
+const qtd = (n: number) => Number(n).toLocaleString('pt-BR');
+
 function nomeDoMes(iso: string) {
   const [ano, mes] = iso.split('-');
   return `${NOMES_MES[Number(mes) - 1]}/${ano}`;
@@ -120,10 +122,12 @@ export function Carteira() {
         subtitulo="Situação dos contratos, atualizada com o Asaas"
         acoes={
           <>
-            <Selecao id="filtro-empreendimento" aria-label="Empreendimento" value={empreendimento} onChange={(e) => setEmpreendimento(e.target.value)} className="max-w-64">
-              <option value="">Todos os empreendimentos</option>
-              {empreendimentos.data?.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
-            </Selecao>
+            <div className="w-64">
+              <Selecao id="filtro-empreendimento" aria-label="Empreendimento" value={empreendimento} onChange={(e) => setEmpreendimento(e.target.value)}>
+                <option value="">Todos os empreendimentos</option>
+                {empreendimentos.data?.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
+              </Selecao>
+            </div>
             <Botao variante="secundario" onClick={exportar} disabled={!linhas.length}>Exportar CSV</Botao>
           </>
         }
@@ -131,7 +135,7 @@ export function Carteira() {
 
       {resumo.error && <div className="mb-4"><MensagemErro erro={mensagemDeErro(resumo.error)} /></div>}
       <div className="mb-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Indicador rotulo="A receber" valor={moeda(aReceber)} detalhe={r ? `${r.parcelas_a_vencer + r.parcelas_vencidas} parcelas em aberto` : ''} />
+        <Indicador rotulo="A receber" valor={moeda(aReceber)} detalhe={r ? `${qtd(r.parcelas_a_vencer + r.parcelas_vencidas)} parcelas em aberto` : ''} />
         <Indicador
           rotulo="Em atraso"
           valor={moeda(r?.vencido)}
@@ -141,7 +145,7 @@ export function Carteira() {
         <Indicador rotulo={`Previsto em ${mesAtual}`} valor={moeda(r?.previsto_mes)} detalhe={r ? `${moeda(r.pago_do_previsto_mes)} já pago` : ''}>
           {r && <BarraValor valor={Number(r.pago_do_previsto_mes)} total={Number(r.previsto_mes)} rotulo="Pago do previsto no mês" />}
         </Indicador>
-        <Indicador rotulo="Próximos 30 dias" valor={moeda(r?.proximos_30_dias)} detalhe={r ? `${r.parcelas_proximos_30} parcelas a vencer` : ''} />
+        <Indicador rotulo="Próximos 30 dias" valor={moeda(r?.proximos_30_dias)} detalhe={r ? `${qtd(r.parcelas_proximos_30)} parcelas a vencer` : ''} />
       </div>
 
       <div className="mb-6 grid gap-3 lg:grid-cols-3">
@@ -244,7 +248,7 @@ function Indicador({ rotulo, valor, detalhe, tom, children }: { rotulo: string; 
   return (
     <div className="rounded-xl border border-linha bg-white p-4 shadow-cartao">
       <p className="text-xs font-semibold tracking-wide text-suave uppercase">{rotulo}</p>
-      <p className={`mt-1 text-2xl font-bold tabular-nums ${tom === 'erro' ? 'text-erro' : 'text-noite'}`}>{valor}</p>
+      <p className={`mt-1 text-xl font-bold tabular-nums sm:text-2xl ${tom === 'erro' ? 'text-erro' : 'text-noite'}`}>{valor}</p>
       {children}
       <p className="mt-0.5 text-xs text-suave">{detalhe}</p>
     </div>
@@ -272,7 +276,7 @@ function Previsao({ meses }: { meses: MesPrevisto[] }) {
       {meses.map((m, i) => (
         <li
           key={m.mes}
-          className="grid grid-cols-[5.5rem_1fr_auto] items-center gap-3 rounded-md px-2 py-1.5 hover:bg-fundo"
+          className="grid grid-cols-[5rem_1fr_7.5rem] items-center gap-3 rounded-md px-2 py-1.5 hover:bg-fundo"
           title={`${nomeDoMes(m.mes)}: ${formatarMoeda(m.valor)} em ${m.parcelas} parcela${m.parcelas === 1 ? '' : 's'}`}
         >
           <span className="text-sm font-semibold text-texto">
@@ -284,7 +288,7 @@ function Previsao({ meses }: { meses: MesPrevisto[] }) {
           </div>
           <span className="text-right text-sm tabular-nums">
             <span className="font-semibold text-texto">{formatarMoeda(m.valor)}</span>
-            <span className="block text-xs text-suave">{m.parcelas} parcela{m.parcelas === 1 ? '' : 's'}</span>
+            <span className="block text-xs text-suave">{qtd(m.parcelas)} parcela{m.parcelas === 1 ? '' : 's'}</span>
           </span>
         </li>
       ))}
