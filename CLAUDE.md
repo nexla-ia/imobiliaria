@@ -457,7 +457,7 @@ Ainda não testado:
 - [x] Chave de API do Asaas de **sandbox** — recebida em 2026-10-27, guardada em `supabase/functions/.env` (fora do git). Conta sandbox: "PLANEJAR ASSESSORIA URBANO E RURAL"
 - [x] **Chave Pix cadastrada na conta Asaas de produção** — conferido em 2026-10-29: uma chave ativa
 - [x] Acesso ao projeto Supabase `boxxebvhyhtmgbqwfjji` — senha do banco e token de acesso (expira em 7 dias, criado em 2026-10-27) recebidos; ambiente configurado. Trocar a senha do banco depois, porque ela passou pela conversa.
-- [x] Primeiro administrador do painel: `alisson@gmail.com` ("Alisson", papel `admin`), ligado em `usuarios_admin` em 2026-10-27. Novos membros entram pelo próprio painel (Configurações → Equipe).
+- [x] Primeiro administrador do painel: `alisson@gmail.com` ("Alisson", papel `admin`), ligado em `usuarios_admin` em 2026-10-27. Novos membros entram pelo próprio painel (Configurações → Equipe). Em 2026-11-03 foi criado o admin da cliente, `admin@planejar.local` (nome "Planejar"), com senha provisória e troca obrigatória no 1º acesso. O e-mail não existe de verdade, então "Esqueci a senha" não chega: se ela perder a senha, gerar outra pelo banco ou trocar o login para um e-mail real.
 - [x] Logo e cores — recebidas em 2026-10-23 (PNG). Falta: arquivo vetorial e nome do app nas lojas
 - [ ] Planilha de empreendimentos, imóveis (endereço, lote/quadra, metragem, fotos) e compradores (CPF ↔ imóvel)
 - [x] Número de WhatsApp de atendimento: (65) 9 9937-3761
