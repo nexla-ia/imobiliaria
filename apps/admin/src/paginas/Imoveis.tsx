@@ -1,17 +1,24 @@
 import type { Empreendimento, Imovel } from '@planejar/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Botao, CabecalhoPagina, Campo, Cartao, Carregando, Entrada, MensagemErro, Modal, Selo, Tabela, useAvisar, Vazio } from '../components/ui';
-import { exigir, mensagemDeErro } from '../lib/api';
+import { buscarTodos, exigir, mensagemDeErro } from '../lib/api';
 import { useEquipe } from '../lib/sessao';
 import { supabase } from '../lib/supabase';
 
-type ImovelLista = Imovel & { contratos: Array<{ status: string; compradores: { nome: string } | null }> };
+type ImovelLista = Imovel & { contratos: Array<{ status: string; compradores: { nome: string; cpf: string } | null }> };
+type Filtro = 'todos' | 'revisar' | 'sem_mapa';
+
+/** Minúsculas e sem acento, para "jose" achar "JOSÉ". */
+const normalizar = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const semCoordenadas = (i: Imovel) => i.lat == null || i.lng == null;
 
 export function Imoveis() {
   const navegar = useNavigate();
   const [editando, setEditando] = useState<Empreendimento | 'novo' | null>(null);
+  const [busca, setBusca] = useState('');
+  const [filtro, setFiltro] = useState<Filtro>('todos');
 
   const empreendimentos = useQuery({
     queryKey: ['empreendimentos'],
@@ -19,14 +26,34 @@ export function Imoveis() {
   });
   const imoveis = useQuery({
     queryKey: ['imoveis'],
-    queryFn: async () =>
-      exigir(await supabase.from('imoveis').select('*, contratos(status, compradores(nome))').order('identificacao')) as ImovelLista[],
+    queryFn: () =>
+      buscarTodos<ImovelLista>((de, ate) =>
+        supabase.from('imoveis').select('*, contratos(status, compradores(nome, cpf))').order('identificacao').order('id').range(de, ate),
+      ),
   });
 
+  const todos = useMemo(() => imoveis.data ?? [], [imoveis.data]);
+  const filtrados = useMemo(() => {
+    const termo = normalizar(busca.trim());
+    const digitos = busca.replace(/\D/g, '');
+    return todos.filter((i) => {
+      if (filtro === 'revisar' && !i.revisar) return false;
+      if (filtro === 'sem_mapa' && !semCoordenadas(i)) return false;
+      if (!termo) return true;
+      const ativos = i.contratos.filter((c) => c.status !== 'cancelado');
+      return (
+        normalizar(i.identificacao).includes(termo) ||
+        normalizar(i.endereco ?? '').includes(termo) ||
+        ativos.some((c) => normalizar(c.compradores?.nome ?? '').includes(termo) || (digitos.length >= 3 && (c.compradores?.cpf ?? '').includes(digitos)))
+      );
+    });
+  }, [todos, busca, filtro]);
+  const filtrando = !!busca.trim() || filtro !== 'todos';
+
   const grupos = [
-    ...(empreendimentos.data ?? []).map((e) => ({ empreendimento: e, itens: (imoveis.data ?? []).filter((i) => i.empreendimento_id === e.id) })),
-    { empreendimento: null, itens: (imoveis.data ?? []).filter((i) => !i.empreendimento_id) },
-  ].filter((g) => g.empreendimento || g.itens.length);
+    ...(empreendimentos.data ?? []).map((e) => ({ empreendimento: e, itens: filtrados.filter((i) => i.empreendimento_id === e.id) })),
+    { empreendimento: null, itens: filtrados.filter((i) => !i.empreendimento_id) },
+  ].filter((g) => g.itens.length || (g.empreendimento && !filtrando));
 
   return (
     <>
@@ -42,10 +69,47 @@ export function Imoveis() {
           </>
         }
       />
-      {imoveis.isLoading || empreendimentos.isLoading ? (
+      {todos.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <Entrada
+            id="busca-imoveis"
+            type="search"
+            placeholder="Buscar por imóvel, endereço, comprador ou CPF"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            className="max-w-md"
+          />
+          <div className="flex rounded-lg bg-white p-1 shadow-cartao" role="group" aria-label="Filtrar imóveis">
+            {([
+              ['todos', 'Todos', todos.length],
+              ['revisar', 'Para revisar', todos.filter((i) => i.revisar).length],
+              ['sem_mapa', 'Sem coordenadas', todos.filter(semCoordenadas).length],
+            ] as const).map(([valor, rotulo, total]) => (
+              <button
+                key={valor}
+                onClick={() => setFiltro(valor)}
+                aria-pressed={filtro === valor}
+                className={`rounded-md px-3 py-1.5 text-sm font-semibold ${filtro === valor ? 'bg-noite text-white' : 'text-suave hover:text-texto'}`}
+              >
+                {rotulo} <span className="tabular-nums opacity-80">{total}</span>
+              </button>
+            ))}
+          </div>
+          {filtrando && <span className="text-sm text-suave">{filtrados.length} de {todos.length} imóveis</span>}
+        </div>
+      )}
+      {imoveis.error ? (
+        <MensagemErro erro={mensagemDeErro(imoveis.error)} />
+      ) : imoveis.isLoading || empreendimentos.isLoading ? (
         <Carregando />
-      ) : grupos.length === 0 ? (
+      ) : todos.length === 0 && grupos.length === 0 ? (
         <Cartao><Vazio titulo="Nada cadastrado ainda">Comece criando um empreendimento e depois os imóveis dele.</Vazio></Cartao>
+      ) : grupos.length === 0 ? (
+        <Cartao>
+          <Vazio titulo="Nenhum imóvel encontrado">
+            <Botao variante="secundario" onClick={() => { setBusca(''); setFiltro('todos'); }}>Limpar busca</Botao>
+          </Vazio>
+        </Cartao>
       ) : (
         <div className="space-y-6">
           {grupos.map((g) => (
