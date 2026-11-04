@@ -157,14 +157,21 @@ export function CompradorDetalhe() {
               </Vazio>
             </Cartao>
           ) : (
-            contratos.data?.map((k) => (
-              <CartaoContrato
-                key={k.id}
-                contrato={k}
-                resumo={resumos.data?.find((r) => r.contrato_id === k.id)}
-                cobrancas={(cobrancas.data ?? []).filter((x) => x.contrato_id === k.id)}
-              />
-            ))
+            <>
+              {contratos.data?.map((k) => (
+                <CartaoContrato
+                  key={k.id}
+                  contrato={k}
+                  resumo={resumos.data?.find((r) => r.contrato_id === k.id)}
+                  cobrancas={(cobrancas.data ?? []).filter((x) => x.contrato_id === k.id)}
+                />
+              ))}
+              {/* parcelamento novo no Asaas (ex.: renegociação) só entra no app depois de vinculado */}
+              <p className="text-sm text-suave">
+                Fez um parcelamento novo no Asaas para este comprador (renegociação, novo lote)?{' '}
+                <Link to={`/compradores/novo?cpf=${c.cpf}`} className="font-semibold text-ciano-escuro">Vincular parcelamento do Asaas</Link>
+              </p>
+            </>
           )}
 
           {avulsas.length > 0 && (
