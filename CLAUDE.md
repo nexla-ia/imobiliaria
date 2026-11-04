@@ -445,7 +445,7 @@ Conhecido e deixado para depois (registrado para não esquecer):
 - Os valores locais de `supabase/functions/.env.production` são os mesmos que estão no servidor, inclusive `CRON_SECRET`, que também fica no Vault.
 
 Ainda não testado:
-- o envio automático do código (falta a Evolution API, agora opcional);
+- o código automático chegando a um comprador real (a Evolution está ligada e a função já responde `automatico: true`; a mensagem de teste direta pela Evolution chegou);
 - push num aparelho (falta o projeto EAS e uma development build);
 - iOS.
 
@@ -467,7 +467,7 @@ Ainda não testado:
 - [x] Aprovar o protótipo das telas (`docs/prototipo/index.html`) — aprovado em 2026-10-26
 - [ ] **Nome do app nas lojas** e **identificador** (`br.com.planejarassessoria.comprador` provisório em `apps/mobile/app.json`; não dá para trocar depois de publicar)
 - [ ] Conta Expo/EAS da Nexla para o projeto (gera `extra.eas.projectId`, necessário para o push)
-- [ ] Instância da Evolution API (opcional desde 2026-10-28: sem ela, a equipe manda a senha provisória pelo WhatsApp da imobiliária com um clique no painel)
+- [x] Instância da Evolution API — instância `planejar` em `evolutionapi.nexladesenvolvimento.com.br`, conectada ao WhatsApp da cliente e ligada no servidor em 2026-11-04 (envio de teste ok)
 - [ ] Remetente de e-mail (domínio verificado no Resend), se o código por e-mail for usado
 - [ ] URLs públicas dos Termos de uso e da Política de privacidade (app e painel)
 - [ ] Decidir: comprador pode alterar o vencimento de parcela vencida pelo app? (padrão: não)
@@ -535,4 +535,5 @@ Construir pensando em **reaproveitar para outras imobiliárias/loteadoras**:
   - previsão de recebimento dos próximos 6 meses e um resumo (recebido no mês, total recebido, contratos, app);
   - funções SQL `resumo_carteira()` e `previsao_recebimento()` (migration `20261103120000`), que só somam o `valor` do Asaas e respeitam a RLS;
   - o filtro de empreendimento fica no topo e vale para tudo.
+- 2026-11-04 — Envio automático pelo WhatsApp ligado (Evolution, instância `planejar`). "Primeiro acesso" e "Esqueci a senha" do app passam a mandar o código de 6 dígitos para o celular cadastrado no Asaas. A geração de senha provisória pelo painel continua como alternativa.
 - 2026-10-27 — Nos arquivos `.env`, a chave do Asaas fica **entre aspas simples** (`ASAAS_API_KEY='$aact_…'`): ela começa com `$`, e sem aspas o shell e o leitor de `.env` do Supabase CLI a expandem como variável (vira vazio e o Asaas responde 401). Os outros segredos das functions (`ASAAS_WEBHOOK_TOKEN`, `CRON_SECRET`, `CODIGO_PEPPER`) foram gerados aleatoriamente no `supabase/functions/.env`.
