@@ -93,15 +93,11 @@ export default function AppLayout() {
         <Stack.Screen
           name="cobranca/[id]"
           options={
-            // no Android a formSheet abriu invisível e travou os toques (Expo Go SDK 58, Pixel 5 / Android 14)
+            // modal comum nas duas plataformas (no iOS vira o cartão nativo que fecha arrastando para baixo).
+            // A formSheet com altura customizada abriu invisível e travou os toques no Android (Expo Go SDK 58)
+            // e nunca foi testada num iPhone, então ficou de fora.
             Platform.OS === 'ios'
-              ? {
-                  presentation: 'formSheet',
-                  sheetAllowedDetents: [0.92],
-                  sheetGrabberVisible: true,
-                  sheetCornerRadius: 26,
-                  contentStyle: { backgroundColor: '#FFFFFF' },
-                }
+              ? { presentation: 'modal', contentStyle: { backgroundColor: '#FFFFFF' } }
               : { presentation: 'modal', animation: 'slide_from_bottom', contentStyle: { backgroundColor: '#FFFFFF' } }
           }
         />

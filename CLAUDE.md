@@ -467,6 +467,7 @@ Ainda não testado:
 - [x] Aprovar o protótipo das telas (`docs/prototipo/index.html`) — aprovado em 2026-10-26
 - [ ] **Nome do app nas lojas** e **identificador** (`br.com.planejarassessoria.comprador` provisório em `apps/mobile/app.json`; não dá para trocar depois de publicar)
 - [ ] Conta Expo/EAS da Nexla para o projeto (gera `extra.eas.projectId`, necessário para o push)
+- [ ] **Conta de demonstração para a revisão da Apple**: cliente de teste no Asaas de produção (CPF de alguém da equipe, parcelamento pequeno, notificações do Asaas desligadas), importado no painel e com senha definida. Ver `docs/publicacao-ios.md`, seção 3.4
 - [x] Instância da Evolution API — instância `planejar` em `evolutionapi.nexladesenvolvimento.com.br`, conectada ao WhatsApp da cliente e ligada no servidor em 2026-11-04 (envio de teste ok)
 - [ ] Remetente de e-mail (domínio verificado no Resend), se o código por e-mail for usado
 - [ ] URLs públicas dos Termos de uso e da Política de privacidade (app e painel)
@@ -536,4 +537,11 @@ Construir pensando em **reaproveitar para outras imobiliárias/loteadoras**:
   - funções SQL `resumo_carteira()` e `previsao_recebimento()` (migration `20261103120000`), que só somam o `valor` do Asaas e respeitam a RLS;
   - o filtro de empreendimento fica no topo e vale para tudo.
 - 2026-11-04 — Envio automático pelo WhatsApp ligado (Evolution, instância `planejar`). "Primeiro acesso" e "Esqueci a senha" do app passam a mandar o código de 6 dígitos para o celular cadastrado no Asaas. A geração de senha provisória pelo painel continua como alternativa.
+- 2026-11-04 — App preparado para a App Store (checklist completo em `docs/publicacao-ios.md`):
+  - manifesto de privacidade em `ios.privacyManifests`, juntando os `PrivacyInfo.xcprivacy` do React Native e dos pacotes Expo;
+  - push em modo produção (`expo-notifications` com `mode: "production"`);
+  - sem pedido de Face ID (`expo-secure-store` com `faceIDPermission: false`);
+  - pacotes Expo atualizados para a versão recomendada do SDK 58 e `@expo/metro-runtime` declarado no app; `expo-doctor` 20/20;
+  - tela Boleto/Pix como `modal` também no iOS.
+  - Não deu para testar num iPhone a partir do Windows: o primeiro teste real é pelo TestFlight. A revisão da Apple exige uma conta de demonstração com parcelas reais (seção 3.4 do checklist).
 - 2026-10-27 — Nos arquivos `.env`, a chave do Asaas fica **entre aspas simples** (`ASAAS_API_KEY='$aact_…'`): ela começa com `$`, e sem aspas o shell e o leitor de `.env` do Supabase CLI a expandem como variável (vira vazio e o Asaas responde 401). Os outros segredos das functions (`ASAAS_WEBHOOK_TOKEN`, `CRON_SECRET`, `CODIGO_PEPPER`) foram gerados aleatoriamente no `supabase/functions/.env`.
