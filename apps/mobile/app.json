@@ -100,8 +100,14 @@
     },
     "extra": {
       "eas": {
-        "projectId": ""
+        "projectId": "47c3cc60-77a6-4e93-a8e6-45f8e1a7250c"
+      },
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
       }
-    }
+    },
+    "owner": "nexlaia"
   }
 }

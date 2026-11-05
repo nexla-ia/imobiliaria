@@ -410,7 +410,7 @@ Conhecido e deixado para depois (registrado para não esquecer):
 - **Comprador PJ (CNPJ):** não entra no app. Confirmar com a cliente se existe esse caso.
 - **Textos secundários de 14px** (etiquetas, horários, legendas) e rótulos das abas de 12px, abaixo dos 16px da seção 8. O corpo segue em 16px+, e as abas não aumentam com a fonte do sistema.
 - **`trocar_senha` da equipe** fica em `user_metadata` (a própria pessoa poderia desligar). O risco é baixo, porque só afeta quem já é da equipe.
-- **Build EAS:** cadastrar as variáveis `EXPO_PUBLIC_*` no EAS (`eas env:create`), porque o `.env` não sobe para o build.
+- **Build EAS:** variáveis `EXPO_PUBLIC_*` cadastradas no EAS em 2026-11-05; ao ter as URLs de termos e privacidade, cadastrar `EXPO_PUBLIC_URL_TERMOS` e `EXPO_PUBLIC_URL_PRIVACIDADE` também.
 
 **Segunda bateria (2026-10-28):** 16 testes unitários, parte 4 dos scripts (35 verificações), painel no Chrome automatizado (20) e o app no emulador.
 - Servidor:
@@ -466,7 +466,7 @@ Ainda não testado:
 - [ ] Textos de política de privacidade e termos (ou aprovar o modelo que fizermos)
 - [x] Aprovar o protótipo das telas (`docs/prototipo/index.html`) — aprovado em 2026-10-26
 - [ ] **Nome do app nas lojas** e **identificador** (`br.com.planejarassessoria.comprador` provisório em `apps/mobile/app.json`; não dá para trocar depois de publicar)
-- [ ] Conta Expo/EAS da Nexla para o projeto (gera `extra.eas.projectId`, necessário para o push)
+- [x] Conta Expo/EAS — projeto `@nexlaia/planejar-comprador` (ID `47c3cc60-77a6-4e93-a8e6-45f8e1a7250c`), criado em 2026-11-05 na conta `nexlaia` (nexla@nexla.com.br). Variáveis `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY` e `EXPO_PUBLIC_EMPRESA_SLUG` cadastradas no EAS (production, preview e development). Faltam as URLs de termos e privacidade
 - [ ] **Conta de demonstração para a revisão da Apple**: cliente de teste no Asaas de produção (CPF de alguém da equipe, parcelamento pequeno, notificações do Asaas desligadas), importado no painel e com senha definida. Ver `docs/publicacao-ios.md`, seção 3.4
 - [x] Instância da Evolution API — instância `planejar` em `evolutionapi.nexladesenvolvimento.com.br`, conectada ao WhatsApp da cliente e ligada no servidor em 2026-11-04 (envio de teste ok)
 - [ ] Remetente de e-mail (domínio verificado no Resend), se o código por e-mail for usado
