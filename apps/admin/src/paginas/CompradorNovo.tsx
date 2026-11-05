@@ -21,6 +21,8 @@ import { supabase } from '../lib/supabase';
 import { normalizarTelefone } from '../lib/telefone';
 
 type ClienteAsaas = BuscarClienteRes['clientes'][number];
+/** Valor do seletor de imóvel que cria um imóvel provisório na hora de salvar. */
+const NOVO_IMOVEL = '__novo__';
 
 export function CompradorNovo() {
   const { empresa, membro } = useEquipe();
@@ -77,7 +79,7 @@ export function CompradorNovo() {
     if (!dados.nome.trim()) return setErro('Informe o nome do comprador.');
     if (dados.telefone && !telefone) return setErro('WhatsApp inválido. Use DDD + número, ex.: (65) 9 9999-0000.');
     if (!resultado.comprador_id && escolhidos.length === 0) {
-      return setErro('Escolha pelo menos um parcelamento e o imóvel correspondente.');
+      return setErro('Escolha o imóvel de pelo menos um parcelamento (ou "Criar imóvel novo").');
     }
     setErro(null);
     setSalvando(true);
@@ -102,9 +104,25 @@ export function CompradorNovo() {
       }
 
       if (escolhidos.length) {
+        // "Criar imóvel novo": imóvel provisório marcado "Revisar", como na importação em lote.
+        // O id criado volta para `vinculos`, então tentar de novo reaproveita o imóvel em vez de duplicar.
+        const resolvidos: Array<[string, string]> = [];
+        for (const [parcelamentoId, imovel] of escolhidos) {
+          if (imovel !== NOVO_IMOVEL) {
+            resolvidos.push([parcelamentoId, imovel]);
+            continue;
+          }
+          const p = cliente.parcelamentos.find((x) => x.id === parcelamentoId)!;
+          const identificacao = p.descricao?.replace(/\s+/g, ' ').trim().slice(0, 80) || `A definir · ${dados.nome.trim().split(/\s+/).slice(0, 2).join(' ')}`;
+          const criado = exigir(
+            await supabase.from('imoveis').insert({ empresa_id: empresa.id, identificacao, revisar: true }).select('id').single(),
+          ) as { id: string };
+          setVinculos((atual) => ({ ...atual, [parcelamentoId]: criado.id }));
+          resolvidos.push([parcelamentoId, criado.id]);
+        }
         exigir(
           await supabase.from('contratos').insert(
-            escolhidos.map(([parcelamentoId, imovelId]) => {
+            resolvidos.map(([parcelamentoId, imovelId]) => {
               const p = cliente.parcelamentos.find((x) => x.id === parcelamentoId)!;
               return {
                 empresa_id: empresa.id,
@@ -244,6 +262,7 @@ export function CompradorNovo() {
                             onChange={(e) => setVinculos({ ...vinculos, [p.id]: e.target.value })}
                           >
                             <option value="">Não vincular</option>
+                            <option value={NOVO_IMOVEL}>Criar imóvel novo (revisar depois)</option>
                             {imoveis.data?.map((i) => (
                               <option key={i.id} value={i.id}>
                                 {i.identificacao}{i.empreendimentos ? ` · ${i.empreendimentos.nome}` : ''}
@@ -259,7 +278,7 @@ export function CompradorNovo() {
             )}
             {imoveis.data?.length === 0 && (
               <p className="border-t border-linha px-5 py-3 text-sm text-alerta">
-                Nenhum imóvel cadastrado. <Link to="/imoveis/novo" className="font-semibold underline">Cadastre o imóvel</Link> antes de vincular.
+                Nenhum imóvel cadastrado ainda. Escolha "Criar imóvel novo" ou <Link to="/imoveis/novo" className="font-semibold underline">cadastre o imóvel</Link> antes.
               </p>
             )}
           </Cartao>
