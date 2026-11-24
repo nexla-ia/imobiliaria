@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "151433305097",
+    "project_id": "planejar-comprador",
+    "storage_bucket": "planejar-comprador.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:151433305097:android:cd4b15bb4bb42d7ee06cd8",
+        "android_client_info": {
+          "package_name": "br.com.planejarassessoria.comprador"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCSFR6XtY212xX48V_pYroOuY-JEt9WYp0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

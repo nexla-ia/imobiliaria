@@ -26,17 +26,11 @@ Os textos de privacidade e termos são um modelo escrito a partir do que o siste
 
 ## 2. Falta antes do primeiro build
 
-### 2.1 Firebase (push no Android) — adiado
+### 2.1 Firebase (push no Android)
 
-> Decisão de 2026-11-24: a primeira versão sai **sem Firebase**. O app funciona e mostra os avisos na central de notificações, mas o push não chega no Android. Quando for ligar, seguir os passos abaixo e gerar um build novo.
-
-Sem isso o app funciona, mas **não recebe notificações no Android**. O arquivo entra no build, então precisa ser feito antes.
-
-1. Em https://console.firebase.google.com, criar o projeto **Planejar Comprador** (conta Google da Nexla).
-2. Adicionar um app **Android** com o pacote `br.com.planejarassessoria.comprador`.
-3. Baixar o `google-services.json` e colocar em `apps/mobile/google-services.json`. Em `app.json`, adicionar `"googleServicesFile": "./google-services.json"` dentro de `android`.
-4. Em Configurações do projeto → **Contas de serviço** → **Gerar nova chave privada** (JSON).
-5. Enviar essa chave para o EAS: `npx eas-cli@latest credentials -p android` → *production* → *Google Service Account* → *Manage your Google Service Account Key for Push Notifications (FCM V1)* → *Upload*. A chave é secreta: não versionar.
+- [x] Projeto Firebase `planejar-comprador` com o app Android `br.com.planejarassessoria.comprador` (2026-11-24).
+- [x] `apps/mobile/google-services.json` no repositório e ligado em `app.json` (`android.googleServicesFile`).
+- [ ] Chave de serviço FCM V1: Firebase → Configurações do projeto → **Contas de serviço** → **Gerar nova chave privada**; enviar em https://expo.dev → planejar-comprador → **Credentials → Android → FCM V1 service account key → Upload**. A chave é secreta: não versionar.
 
 ### 2.2 Conta do Play Console
 
