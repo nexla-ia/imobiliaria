@@ -24,10 +24,13 @@ Não deu para testar num iPhone a partir do Windows. O primeiro teste real é pe
 
 1. **Conta Apple Developer como organização** (US$ 99/ano), com CNPJ e número **D-U-N-S** da Planejar. O D-U-N-S pode levar alguns dias.
 2. **Acesso à conta**: convite para um e-mail da Nexla com papel **Admin** ou **App Manager** em App Store Connect → Usuários e acesso.
-3. **Conta Expo/EAS** da Nexla para o projeto (gera o `extra.eas.projectId`, que o push exige).
+3. ~~Conta Expo/EAS~~ feito: projeto `@nexlaia/planejar-comprador`, com todas as variáveis `EXPO_PUBLIC_*` cadastradas.
 4. **Nome do app na loja** (até 30 caracteres; o nome embaixo do ícone continua "Planejar") e subtítulo (até 30).
-5. **URLs públicas**: política de privacidade, termos de uso e uma página de suporte (pode ser o WhatsApp de atendimento numa página simples).
-6. **Conta de demonstração para a revisão da Apple** (seção 3.4). Sem ela o app é recusado, porque o revisor não consegue entrar.
+5. **URLs públicas** (publicadas em 2026-11-24, texto a aprovar pela Planejar):
+   - Privacidade: https://imobiliaria-alpha-one.vercel.app/privacidade.html
+   - Termos: https://imobiliaria-alpha-one.vercel.app/termos.html
+   - Suporte: https://imobiliaria-alpha-one.vercel.app/suporte.html
+6. **Conta de demonstração para a revisão da Apple** (seção 3.4). Já existe um comprador de teste ativo com parcelas reais; informar CPF e senha só no App Store Connect, nunca no repositório.
 
 ## 3. App Store Connect: o que preencher
 
@@ -35,7 +38,7 @@ Não deu para testar num iPhone a partir do Windows. O primeiro teste real é pe
 
 | Campo | Sugestão |
 |---|---|
-| Categoria principal | Finanças |
+| Categoria principal | Estilo de vida (a mesma linha de outros apps de imobiliária; "Finanças" atrai exigências de app financeiro) |
 | Classificação etária | 4+ (sem conteúdo sensível) |
 | Preço | Grátis |
 | Disponibilidade | Brasil |
@@ -79,10 +82,7 @@ Rodar em `apps/mobile`, depois de ter as contas da seção 2:
 
 ```bash
 npx eas-cli@latest login
-npx eas-cli@latest init                      # cria o projeto e grava extra.eas.projectId no app.json
-npx eas-cli@latest env:create                # EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_ANON_KEY,
-                                             # EXPO_PUBLIC_EMPRESA_SLUG, EXPO_PUBLIC_URL_PRIVACIDADE, EXPO_PUBLIC_URL_TERMOS
-                                             # (ambiente "production"; o .env local não sobe para o build)
+# projeto EAS e variáveis já configurados (2026-11-05 e 2026-11-24)
 npx eas-cli@latest build -p ios --profile production   # pede login da Apple e cria certificado, perfil e chave de push
 npx eas-cli@latest submit -p ios --latest              # envia para o App Store Connect / TestFlight
 ```
