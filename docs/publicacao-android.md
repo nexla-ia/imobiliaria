@@ -26,7 +26,9 @@ Os textos de privacidade e termos são um modelo escrito a partir do que o siste
 
 ## 2. Falta antes do primeiro build
 
-### 2.1 Firebase (push no Android)
+### 2.1 Firebase (push no Android) — adiado
+
+> Decisão de 2026-11-24: a primeira versão sai **sem Firebase**. O app funciona e mostra os avisos na central de notificações, mas o push não chega no Android. Quando for ligar, seguir os passos abaixo e gerar um build novo.
 
 Sem isso o app funciona, mas **não recebe notificações no Android**. O arquivo entra no build, então precisa ser feito antes.
 

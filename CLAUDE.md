@@ -463,14 +463,14 @@ Ainda não testado:
 - [x] Número de WhatsApp de atendimento: (65) 9 9937-3761
 - [ ] **Conta Google Play Console como organização** (US$ 25, uma vez). Conta pessoal nova exige teste fechado com 12 testadores por 14 dias antes de publicar, o que atrasa o cronograma.
 - [ ] **Conta Apple Developer como organização** (US$ 99/ano). Precisa de CNPJ e número **D-U-N-S**, que pode levar alguns dias, então **pedir já na semana 1**.
-- [ ] Textos de política de privacidade e termos (ou aprovar o modelo que fizermos)
+- [x] Textos de política de privacidade e termos — modelo escrito pela Nexla, aprovado em 2026-11-24
 - [x] Aprovar o protótipo das telas (`docs/prototipo/index.html`) — aprovado em 2026-10-26
 - [ ] **Nome do app nas lojas** e **identificador** (`br.com.planejarassessoria.comprador` provisório em `apps/mobile/app.json`; não dá para trocar depois de publicar)
 - [x] Conta Expo/EAS — projeto `@nexlaia/planejar-comprador` (ID `47c3cc60-77a6-4e93-a8e6-45f8e1a7250c`), criado em 2026-11-05 na conta `nexlaia` (nexla@nexla.com.br). Variáveis `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY` e `EXPO_PUBLIC_EMPRESA_SLUG` cadastradas no EAS (production, preview e development). Faltam as URLs de termos e privacidade
 - [ ] **Conta de demonstração para a revisão da Apple**: cliente de teste no Asaas de produção (CPF de alguém da equipe, parcelamento pequeno, notificações do Asaas desligadas), importado no painel e com senha definida. Ver `docs/publicacao-ios.md`, seção 3.4
 - [x] Instância da Evolution API — instância `planejar` em `evolutionapi.nexladesenvolvimento.com.br`, conectada ao WhatsApp da cliente e ligada no servidor em 2026-11-04 (envio de teste ok)
 - [ ] Remetente de e-mail (domínio verificado no Resend), se o código por e-mail for usado
-- [ ] URLs públicas dos Termos de uso e da Política de privacidade (app e painel)
+- [x] URLs públicas (2026-11-24, servidas pelo painel na Vercel): `/privacidade.html`, `/termos.html` e `/suporte.html` (com `#excluir-conta`, exigida pelo Google). Ligadas ao app por `EXPO_PUBLIC_URL_*` no EAS e por `empresas.textos` (Perfil)
 - [ ] Decidir: comprador pode alterar o vencimento de parcela vencida pelo app? (padrão: não)
 - [ ] Decidir: dias de aviso de vencimento (padrão: 3 dias antes e no dia)
 - [ ] Decidir: cobranças avulsas (fora do parcelamento, ex.: taxa de transferência) aparecem no app? (padrão: não — `empresas.mostrar_cobrancas_avulsas`)
@@ -544,4 +544,6 @@ Construir pensando em **reaproveitar para outras imobiliárias/loteadoras**:
   - pacotes Expo atualizados para a versão recomendada do SDK 58 e `@expo/metro-runtime` declarado no app; `expo-doctor` 20/20;
   - tela Boleto/Pix como `modal` também no iOS.
   - Não deu para testar num iPhone a partir do Windows: o primeiro teste real é pelo TestFlight. A revisão da Apple exige uma conta de demonstração com parcelas reais (seção 3.4 do checklist).
+- 2026-11-24 — Preparação final para as lojas: textos de privacidade, termos e suporte publicados e aprovados; pacotes do SDK 58 atualizados; guia `docs/publicacao-android.md` e imagens da Play em `docs/lojas/`.
+- 2026-11-24 — **Android sem Firebase por enquanto**, por decisão da equipe: o push não chega no Android (o iOS usa APNs e funciona). Os avisos continuam na central de notificações do app. Ligar depois exige `google-services.json`, chave FCM V1 no EAS e um build novo (não vai por EAS Update).
 - 2026-10-27 — Nos arquivos `.env`, a chave do Asaas fica **entre aspas simples** (`ASAAS_API_KEY='$aact_…'`): ela começa com `$`, e sem aspas o shell e o leitor de `.env` do Supabase CLI a expandem como variável (vira vazio e o Asaas responde 401). Os outros segredos das functions (`ASAAS_WEBHOOK_TOKEN`, `CRON_SECRET`, `CODIGO_PEPPER`) foram gerados aleatoriamente no `supabase/functions/.env`.
